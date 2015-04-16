@@ -13,6 +13,7 @@ import be.tarsos.dsp.pitch.PitchDetectionResult;
 import be.tarsos.dsp.pitch.PitchProcessor;
 import be.tarsos.dsp.pitch.Goertzel.FrequenciesDetectedHandler;
 import be.tarsos.dsp.pitch.PitchProcessor.PitchEstimationAlgorithm;
+import be.tarsos.dsp.util.PitchConverter;
 import be.tarsos.dsp.util.fft.FFT;
 import be.tarsos.dsp.util.fft.HannWindow;
 
@@ -144,60 +145,60 @@ public class MainActivity extends ActionBarActivity {
 
                 int k = 0;
                 MidiNote currNote;
-//                Log.d("NOTES" , "currNote start time: " + notes.get(1).getStartTime()*p2s);
+                Log.d("NOTES" , "currNote start time: " + notes.get(1).getStartTime()*p2s);
                 if (noteIdx < notes.size()) {
-//                    while(noteIdx<notes.size() && notes.get(noteIdx).getStartTime()<=timeElapsed && k<5 )
-//                    {
-//                        currNote = notes.get(noteIdx);
-//                        // get frequency
-//                        tempExpNotes[k][FREQ] = currNote.getNumber();
-//                        // get end Time
-//                        tempExpNotes[k][END_TIME] = currNote.getEndTime();
-//                        // get duration
-//                        tempExpNotes[k][DURATION] = currNote.getDuration();
-//                        noteIdx++;
-//                        k++;
-////                      Log.d("NOTES" , "added note: " + tempExpNotes[k][FREQ] + ", duration: "+ tempExpNotes[k][2]);
-//
-//                    }
+                    while(noteIdx<notes.size() && notes.get(noteIdx).getStartTime()<=timeElapsed && k<5 )
+                    {
+                        currNote = notes.get(noteIdx);
+                        // get frequency
+                        tempExpNotes[k][FREQ] = currNote.getNumber();
+                        // get end Time
+                        tempExpNotes[k][END_TIME] = currNote.getEndTime();
+                        // get duration
+                        tempExpNotes[k][DURATION] = currNote.getDuration();
+                        noteIdx++;
+                        k++;
+//                      Log.d("NOTES" , "added note: " + tempExpNotes[k][FREQ] + ", duration: "+ tempExpNotes[k][2]);
+
+                    }
 
 
-//                    for(int i = 0 ; i < MAX_FREQ_SIZE ; i++)
-//                    {
-//                        // if the note ends a 1/16 note after the current location, add it to the wanted notes
-//                        if(expNotes[i][FREQ]>0 && expNotes[i][END_TIME]-timeElapsed>=windowSize/(SR*2) && k<MAX_FREQ_SIZE)
-//                        {
-//// get frequency
-//                            tempExpNotes[k][FREQ] = expNotes[i][FREQ];
-//                            // get end Time
-//                            tempExpNotes[k][DURATION] =  expNotes[i][DURATION];
-//                            // get duration
-//                            tempExpNotes[k][END_TIME] =  expNotes[i][END_TIME];
-////                        Log.d("NOTES" , "added note: " + tempExpNotes[k][0] + ", duration: "+ tempExpNotes[k][2]);
-//                            k++;
-//                            i++;
-//                        }
-//                    }
+                    for(int i = 0 ; i < MAX_FREQ_SIZE ; i++)
+                    {
+                        // if the note ends a 1/16 note after the current location, add it to the wanted notes
+                        if(expNotes[i][FREQ]>0 && expNotes[i][END_TIME]-timeElapsed>=windowSize/(SR*2) && k<MAX_FREQ_SIZE)
+                        {
+// get frequency
+                            tempExpNotes[k][FREQ] = expNotes[i][FREQ];
+                            // get end Time
+                            tempExpNotes[k][DURATION] =  expNotes[i][DURATION];
+                            // get duration
+                            tempExpNotes[k][END_TIME] =  expNotes[i][END_TIME];
+//                        Log.d("NOTES" , "added note: " + tempExpNotes[k][0] + ", duration: "+ tempExpNotes[k][2]);
+                            k++;
+                            i++;
+                        }
+                    }
 
-//                    // clear rest of notes from last iteration
-//                    for(; k<5;k++){
-//                        tempExpNotes[k][0] = tempExpNotes[k][1] = 0.0;
-//                    }
-//                    expNotes = tempExpNotes;
+                    // clear rest of notes from last iteration
+                    for(; k<5;k++){
+                        tempExpNotes[k][0] = tempExpNotes[k][1] = 0.0;
+                    }
+                    expNotes = tempExpNotes;
                 }
 
-//                Log.d("NOTES" , "");
-//                Log.d("NOTES" , "");
-//
-//                Log.d("NOTES" , "======current iteration frequencies:======");
-//                Log.d("NOTES" , "||       time: [" +(timeElapsed)+" - "+(timeElapsed+windowSizeTime*1000)+"]             ||");
-//
-//                for (int i = 0 ; i< MAX_FREQ_SIZE ; i++)
-//                {
-//                   Log.d("NOTES" , "||              NOTE : " + expNotes[i][FREQ] + "              ||");
-//
-//                }
-//                Log.d("NOTES" , "=========================================");
+                Log.d("NOTES" , "");
+                Log.d("NOTES" , "");
+
+                Log.d("NOTES" , "======current iteration frequencies:======");
+                Log.d("NOTES" , "||       time: [" +(timeElapsed)+" - "+(timeElapsed+windowSizeTime*1000)+"]             ||");
+
+                for (int i = 0 ; i< MAX_FREQ_SIZE ; i++)
+                {
+                   Log.d("NOTES" , "||              NOTE : " + expNotes[i][FREQ] + "              ||");
+
+                }
+                Log.d("NOTES" , "=========================================");
 
                 // get event
                 float[] audioFloatBuffer = audioEvent.getFloatBuffer();
@@ -391,7 +392,8 @@ public class MainActivity extends ActionBarActivity {
                             TextView text = (TextView) findViewById(R.id.newPitch);
                             text.setText("notes freqs found: " + foundFreqsNum);
                             TextView note = (TextView) findViewById(R.id.req_note);
-                            note.setText("notes req: ");
+                            note.setText("notes req: "+  PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])));
+
                         }
                     });
                 }
