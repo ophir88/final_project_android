@@ -1,5 +1,7 @@
 package com.abitbol.ophir.iplay;
 
+
+
 import be.tarsos.dsp.AudioDispatcher;
 import be.tarsos.dsp.AudioEvent;
 import be.tarsos.dsp.AudioProcessor;
@@ -33,6 +35,8 @@ import java.lang.*;
 import java.util.List;
 
 import android.content.res.*;
+
+import org.jtransforms.fft.FloatFFT_1D;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -85,7 +89,7 @@ public class MainActivity extends ActionBarActivity {
         // set variables *-*-*-*-*-*-*-*-*-*-*-*-*-
         // final double[] freqs = gtNt.getFreqs();
         final int bufferSize = (int) windowSize;
-        final double fourierCoef = SR / (windowSize);
+        final double fourierCoef = SR / (2*(windowSize));
         final getNote gtNt = new getNote(bufferSize, fourierCoef);
         noteDB = gtNt.getNotes();
 
@@ -102,9 +106,15 @@ public class MainActivity extends ActionBarActivity {
 
         AudioProcessor fftProcessor = new AudioProcessor() {
 
+
+            FloatFFT_1D jft = new FloatFFT_1D(bufferSize);
+
+            float[] amplitudes = new float[bufferSize];
+
+
             FFT fft = new FFT(bufferSize , new HannWindow());
-            float[] amplitudes = new float[bufferSize / 2];
-            float[] finalAmplitudes = new float[bufferSize / 2];
+//            float[] amplitudes = new float[bufferSize / 2];
+            float[] finalAmplitudes = new float[bufferSize];
 
             boolean firstRun = true;
             long startTime;
@@ -118,6 +128,9 @@ public class MainActivity extends ActionBarActivity {
 
             @Override
             public boolean process(AudioEvent audioEvent) {
+
+
+
 
                 double timeElapsed;
                 if (firstRun) {
@@ -206,9 +219,13 @@ public class MainActivity extends ActionBarActivity {
                     System.arraycopy(audioFloatBuffer, 0, transformbuffer, 0,
                             audioFloatBuffer.length);
 
+                    jft.realForward((float []) transformbuffer);
+//                    jft.realForward(transformbuffer);
+                    amplitudes = transformbuffer;
+
                     // create fourier
-                    fft.forwardTransform(transformbuffer);
-                    fft.modulus(transformbuffer, amplitudes);
+//                    fft.forwardTransform(transformbuffer);
+//                    fft.modulus(transformbuffer, amplitudes);
 
 
 //                 find peaks:
@@ -263,8 +280,8 @@ public class MainActivity extends ActionBarActivity {
 //                    }
 
 
-                    float[] amplitudesDown2 = new float[bufferSize / 2]; // downsample by half
-                    float[] amplitudesDown3 = new float[bufferSize / 2]; // downsample by half
+                    float[] amplitudesDown2 = new float[bufferSize]; // downsample by half
+                    float[] amplitudesDown3 = new float[bufferSize]; // downsample by half
 
                     for (int i = 0; i < amplitudesDown2.length / 2; i++) {
 
@@ -372,6 +389,8 @@ public class MainActivity extends ActionBarActivity {
                         public void run() {
                             TextView text = (TextView) findViewById(R.id.newPitch);
                             text.setText("notes freqs found: " + foundFreqsNum);
+                            TextView note = (TextView) findViewById(R.id.req_note);
+                            note.setText("notes req: ");
                         }
                     });
                 }
