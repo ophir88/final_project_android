@@ -212,7 +212,6 @@ public class MainActivity extends ActionBarActivity {
                     // set variables
                     float SR = audioEvent.getSampleRate();
                     int BS = audioEvent.getBufferSize();
-                    float coef = SR / BS;
 
                     float[] transformbuffer = new float[bufferSize * 2];
 
@@ -236,20 +235,20 @@ public class MainActivity extends ActionBarActivity {
 
 
                     for (int i = 0; i < amplitudes.length / 2; i++) {
-//                        amplitudes[i] = amplitudes[i] * amplitudes[i];
-                        max = (max < amplitudes[i]) ? amplitudes[i] : max;
+                        amplitudes[i] = amplitudes[i] * amplitudes[i];
+//                        max = (max < amplitudes[i]) ? amplitudes[i] : max;
                     }
                     Log.d("max spec amp", "spec max: " + max);
 
                     // normalize
-                    for (int i = 0; i < amplitudes.length / 2; i++) {
-                        amplitudes[i] /= max;
-                        if(amplitudes[i]<0.0002)
-                        {
-                            (amplitudes[i])=0;
-                        }
-
-                    }
+//                    for (int i = 0; i < amplitudes.length / 2; i++) {
+//                        amplitudes[i] /= max;
+////                        if(amplitudes[i]<0.0002)
+////                        {
+////                            (amplitudes[i])=0;
+////                        }
+//
+//                    }
 
 
                     //  Find peaks:
@@ -293,7 +292,9 @@ public class MainActivity extends ActionBarActivity {
                     }
                     max = 0;
                     for (int i = 0; i < amplitudes.length / 2; i++) {
-                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] + amplitudes[i] * amplitudesDown3[i])*noteDB[i]*2*i/bufferSize;
+                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i]*amplitudesDown3[i])*noteDB[i];
+                                                max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
+
 //                        max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
                     }
 //                    finalAmplitudes = amplitudes;
@@ -313,7 +314,7 @@ public class MainActivity extends ActionBarActivity {
                     for (int i = 1; i < finalAmplitudes.length / 2; i++) {
 
                         // check some threshold and close values:
-                        if (finalAmplitudes[i] > 0.0001
+                        if (finalAmplitudes[i] > max*0.001
                                 && finalAmplitudes[i] > finalAmplitudes[i - 1]
                                 && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
 //                            check for close range
