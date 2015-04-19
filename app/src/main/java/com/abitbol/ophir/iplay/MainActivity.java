@@ -17,7 +17,9 @@ import be.tarsos.dsp.util.PitchConverter;
 import be.tarsos.dsp.util.fft.FFT;
 import be.tarsos.dsp.util.fft.HannWindow;
 
+import android.app.Activity;
 import android.graphics.Color;
+import android.os.CountDownTimer;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
@@ -70,6 +72,7 @@ public class MainActivity extends ActionBarActivity {
     double p2s; // pulses to seconds coeff.
     double windowSizeTime, windowSize; // buffer size in seconds and bits
 
+    Activity activity = this;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -121,7 +124,7 @@ public class MainActivity extends ActionBarActivity {
             float[] amplitudes = new float[bufferSize];
 
 
-            FFT fft = new FFT(bufferSize, new HannWindow());
+            FFT fft = new FFT(bufferSize);
             //            float[] amplitudes = new float[bufferSize / 2];
             float[] finalAmplitudes = new float[bufferSize];
 
@@ -151,7 +154,7 @@ public class MainActivity extends ActionBarActivity {
 
                 int k = 0;
                 MidiNote currNote;
-                Log.d("NOTES", "currNote start time: " + notes.get(1).getStartTime() * p2s);
+//                Log.d("NOTES", "currNote start time: " + notes.get(1).getStartTime() * p2s);
                 if (noteIdx < notes.size()) {
                     while (noteIdx < notes.size() && notes.get(noteIdx).getStartTime() * p2s <= timeElapsed && k < 5) {
                         currNote = notes.get(noteIdx);
@@ -190,17 +193,17 @@ public class MainActivity extends ActionBarActivity {
                     expNotes = tempExpNotes;
                 }
 
-                Log.d("NOTES", "");
-                Log.d("NOTES", "");
-
-                Log.d("NOTES", "======current iteration frequencies:======");
-                Log.d("NOTES", "||       time: [" + (timeElapsed) + " - " + (timeElapsed + windowSizeTime * 1000) + "]             ||");
-
-                for (int i = 0; i < MAX_FREQ_SIZE; i++) {
-                    Log.d("NOTES", "||              NOTE : " + expNotes[i][FREQ] + "              ||");
-
-                }
-                Log.d("NOTES", "=========================================");
+//                Log.d("NOTES", "");
+//                Log.d("NOTES", "");
+//
+//                Log.d("NOTES", "======current iteration frequencies:======");
+//                Log.d("NOTES", "||       time: [" + (timeElapsed) + " - " + (timeElapsed + windowSizeTime * 1000) + "]             ||");
+//
+//                for (int i = 0; i < MAX_FREQ_SIZE; i++) {
+//                    Log.d("NOTES", "||              NOTE : " + expNotes[i][FREQ] + "              ||");
+//
+//                }
+//                Log.d("NOTES", "=========================================");
 
                 // get event
                 float[] audioFloatBuffer = audioEvent.getFloatBuffer();
@@ -395,8 +398,8 @@ public class MainActivity extends ActionBarActivity {
 
                     float[] amplitudesDown2 = new float[bufferSize]; // downsample by half
                     float[] amplitudesDown3 = new float[bufferSize]; // downsample by half
-                    float[] amplitudesDown4 = new float[bufferSize]; // downsample by half
-                    float[] amplitudesDown5 = new float[bufferSize]; // downsample by half
+//                    float[] amplitudesDown4 = new float[bufferSize]; // downsample by half
+//                    float[] amplitudesDown5 = new float[bufferSize]; // downsample by half
 
                     for (int i = 0; i < amplitudesDown2.length / 2; i++) {
 
@@ -406,26 +409,26 @@ public class MainActivity extends ActionBarActivity {
 
                         amplitudesDown3[i] = amplitudes[i * 3];
                     }
-                    for (int i = 0; i < amplitudesDown3.length / 4; i++) {
-
-                        amplitudesDown4[i] = amplitudes[i * 4];
-                    }
-                    for (int i = 0; i < amplitudesDown3.length / 5; i++) {
-
-                        amplitudesDown5[i] = amplitudes[i * 5];
-                    }
+//                    for (int i = 0; i < amplitudesDown3.length / 4; i++) {
+//
+//                        amplitudesDown4[i] = amplitudes[i * 4];
+//                    }
+//                    for (int i = 0; i < amplitudesDown3.length / 5; i++) {
+//
+//                        amplitudesDown5[i] = amplitudes[i * 5];
+//                    }
                     max = 0;
                     for (int i = 0; i < amplitudes.length / 2; i++) {
                         finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]
-                                * amplitudesDown4[i] * amplitudesDown5[i]) * noteDB[i];
+                              ) * noteDB[i];
                         max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
 
 //                        max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
                     }
 //                    finalAmplitudes = amplitudes;
-//                    for (int i = 0; i < amplitudes.length / 2; i++) {
-//                        finalAmplitudes[i] /=max;
-//                    }
+                    for (int i = 0; i < amplitudes.length / 2; i++) {
+                        finalAmplitudes[i] /=max;
+                    }
 //                    for (int i = 0; i < numPeaks; i++) {
 //
 //                        Log.d("found freqs" , "after multiplication, value at "+i+" is:" + finalAmplitudes[(int)peaks[i]]);
@@ -439,7 +442,7 @@ public class MainActivity extends ActionBarActivity {
                     for (int i = 1; i < finalAmplitudes.length / 2; i++) {
 
                         // check some threshold and close values:
-                        if (finalAmplitudes[i] > max * 0.001
+                        if (finalAmplitudes[i] > 0.0000001
                                 && finalAmplitudes[i] > finalAmplitudes[i - 1]
                                 && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
 //                            check for close range
@@ -448,7 +451,7 @@ public class MainActivity extends ActionBarActivity {
                             int stIn = ((i - (int) (10 / fourierCoef)) < 0) ? i : (int) (10 / fourierCoef);
                             int endIn = ((i + (int) (10 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (10 / fourierCoef);
                             for (int j = -stIn; j < stIn + endIn; j++) {
-//                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
+                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
 
                                 if (finalAmplitudes[i] < finalAmplitudes[i + j]) {
                                     biggestPeak = false;
@@ -553,7 +556,7 @@ public class MainActivity extends ActionBarActivity {
 
                     }
                 });
-                Log.d("silence", "is playing: " + !silence);
+//                Log.d("silence", "is playing: " + !silence);
 
 
                 return true;
@@ -597,9 +600,11 @@ public class MainActivity extends ActionBarActivity {
             public void onClick(View v) {
 
                 if (!running) {
+                    final Countdown countdown = new Countdown(BPM ,listenThread , activity );
+                    countdown.start();
                     TextView status_view = (TextView) findViewById(R.id.text_status);
                     status_view.setText("running!");
-                    listenThread.start();
+//                    listenThread.start();
                 }
                 running = true;
 
