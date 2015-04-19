@@ -52,6 +52,9 @@ public class MainActivity extends ActionBarActivity {
     public final static int FREQ = 0;
     public final static int END_TIME = 1;
     public final static int DURATION = 2;
+    public final static int PEAK_START = 0;
+    public final static int PEAK_END = 1;
+
     ArrayList<MidiNote> notes; // will hold the notes of the song
     double[][] tempExpNotes = new double[5][4]; // will hold the current notes we are looking for
     double[][] expNotes = new double[5][4]; // will hold the current notes we are looking for
@@ -149,14 +152,14 @@ public class MainActivity extends ActionBarActivity {
                 MidiNote currNote;
                 Log.d("NOTES", "currNote start time: " + notes.get(1).getStartTime() * p2s);
                 if (noteIdx < notes.size()) {
-                    while (noteIdx < notes.size() && notes.get(noteIdx).getStartTime() <= timeElapsed && k < 5) {
+                    while (noteIdx < notes.size() && notes.get(noteIdx).getStartTime() * p2s <= timeElapsed && k < 5) {
                         currNote = notes.get(noteIdx);
                         // get frequency
                         tempExpNotes[k][FREQ] = currNote.getNumber();
                         // get end Time
-                        tempExpNotes[k][END_TIME] = currNote.getEndTime();
+                        tempExpNotes[k][END_TIME] = currNote.getEndTime() * p2s;
                         // get duration
-                        tempExpNotes[k][DURATION] = currNote.getDuration();
+                        tempExpNotes[k][DURATION] = currNote.getDuration() * p2s;
                         noteIdx++;
                         k++;
 //                      Log.d("NOTES" , "added note: " + tempExpNotes[k][FREQ] + ", duration: "+ tempExpNotes[k][2]);
@@ -237,24 +240,45 @@ public class MainActivity extends ActionBarActivity {
 //               ===============================================================
 
 
-////               *-*-*-*-*-*-*-*- variables *-*-*-*-*-*-*-*-
-//                int[][] ampPeak = new int[2][2]; // up to two peaks in a buffer:
-//                int peakIdx = 0;
-//                boolean inPeak = false, continuousNote = false;
-//
-//                int peakStartLoc = 0;
-//                double thresh = average;
-//                for (int i = 0; i < envelope.length; i++) {
-//
-//                    if (!inPeak) { // if we aren't in a peaks
-//                        if (envelope[i] > thresh) { // and the amplitude is higher than average
-//                            inPeak = true; // then we start a peak
-//                            peakStartLoc = i;
-//                        }
-//                    }
-//
-//
-//                }
+//               *-*-*-*-*-*-*-*- variables *-*-*-*-*-*-*-*-
+                    int[] ampPeak = new int[2]; // up to two peaks in a buffer:
+                    int peakIdx = 0;
+                    boolean inPeak = false, continuousNote = false;
+
+                    int peakStartLoc = 0;
+                    int peakEndLoc = 0;
+
+                    double thresh = average;
+                    for (int i = 0; i < envelope.length; i++) {
+
+                        if (!inPeak) { // if we aren't in a peaks
+                            if (envelope[i] > thresh) { // and the amplitude is higher than average
+                                inPeak = true; // then we start a peak
+                                peakStartLoc = i;
+                            }
+                        } else {
+                            if (envelope[i] < thresh) { // and the amplitude is higher than average
+                                inPeak = false; // then we start a peak
+                                peakEndLoc = i;
+
+                                if (peakEndLoc - peakStartLoc > windowSize / 4) {
+                                    ampPeak[PEAK_START] = peakStartLoc;
+                                    ampPeak[PEAK_END] = peakStartLoc;
+//                                    peakIdx++;
+                                }
+
+                            }
+                        }
+
+
+                    }
+
+                    if (inPeak && peakStartLoc < windowSize * 7 / 8) {
+                        ampPeak[PEAK_START] = peakStartLoc;
+                        ampPeak[PEAK_END] = (int) windowSize - 1;
+                        continuousNote = true;
+                    }
+
 //
 //
 //                for i = 1:length(maxenv)
@@ -288,46 +312,48 @@ public class MainActivity extends ActionBarActivity {
 //                end
 
 
-                    float maxAmp = 0;
-                    for (int j = 0; j < audioFloatBuffer.length; j++) {
-                        maxAmp = (maxAmp < audioFloatBuffer[j]) ? audioFloatBuffer[j] : maxAmp;
+                    int length = ampPeak[PEAK_END] - ampPeak[PEAK_START];
+                    float[] peakFloat = new float[length];
 
+                    float maxAmp = 0;
+                    for (int j = 0; j < length; j++) {
+                        peakFloat[j] = audioFloatBuffer[PEAK_START + j];
                     }
 
-                    if (maxAmp > 0.1) {
-                        Log.d("max amp", "max: " + maxAmp);
-                        // set variables
-                        float SR = audioEvent.getSampleRate();
-                        int BS = audioEvent.getBufferSize();
+//                    if (maxAmp > 0.1) {
+                    Log.d("max amp", "max: " + maxAmp);
+                    // set variables
+                    float SR = audioEvent.getSampleRate();
+                    int BS = audioEvent.getBufferSize();
 
-                        float[] transformbuffer = new float[bufferSize * 2];
+                    float[] transformbuffer = new float[bufferSize * 2];
 
-                        System.arraycopy(audioFloatBuffer, 0, transformbuffer, 0,
-                                audioFloatBuffer.length);
+                    System.arraycopy(audioFloatBuffer, 0, transformbuffer, 0,
+                            audioFloatBuffer.length);
 
-                        jft.realForward((float[]) transformbuffer);
+                    jft.realForward((float[]) transformbuffer);
 //                    jft.realForward(transformbuffer);
-                        amplitudes = transformbuffer;
+                    amplitudes = transformbuffer;
 
-                        // create fourier
+                    // create fourier
 //                    fft.forwardTransform(transformbuffer);
 //                    fft.modulus(transformbuffer, amplitudes);
 
 
 //                 find peaks:
-                        float max = 0;
-                        float freq = 0;
-                        int numPeaks = 0;
-                        double[] peaks = new double[100];
+                    float max = 0;
+                    float freq = 0;
+                    int numPeaks = 0;
+                    double[] peaks = new double[100];
 
 
-                        for (int i = 0; i < amplitudes.length / 2; i++) {
-                            amplitudes[i] = amplitudes[i] * amplitudes[i];
+                    for (int i = 0; i < amplitudes.length / 2; i++) {
+                        amplitudes[i] = amplitudes[i] * amplitudes[i];
 //                        max = (max < amplitudes[i]) ? amplitudes[i] : max;
-                        }
-                        Log.d("max spec amp", "spec max: " + max);
+                    }
+                    Log.d("max spec amp", "spec max: " + max);
 
-                        // normalize
+                    // normalize
 //                    for (int i = 0; i < amplitudes.length / 2; i++) {
 //                        amplitudes[i] /= max;
 ////                        if(amplitudes[i]<0.0002)
@@ -338,7 +364,7 @@ public class MainActivity extends ActionBarActivity {
 //                    }
 
 
-                        //  Find peaks:
+                    //  Find peaks:
 //                    for (int i = 1; i < amplitudes.length / 2; i++) {
 //
 //                        // check some threshold and close values:
@@ -366,24 +392,24 @@ public class MainActivity extends ActionBarActivity {
 //                    }
 
 
-                        float[] amplitudesDown2 = new float[bufferSize]; // downsample by half
-                        float[] amplitudesDown3 = new float[bufferSize]; // downsample by half
+                    float[] amplitudesDown2 = new float[bufferSize]; // downsample by half
+                    float[] amplitudesDown3 = new float[bufferSize]; // downsample by half
 
-                        for (int i = 0; i < amplitudesDown2.length / 2; i++) {
+                    for (int i = 0; i < amplitudesDown2.length / 2; i++) {
 
-                            amplitudesDown2[i] = amplitudes[i * 2];
-                        }
-                        for (int i = 0; i < amplitudesDown3.length / 3; i++) {
+                        amplitudesDown2[i] = amplitudes[i * 2];
+                    }
+                    for (int i = 0; i < amplitudesDown3.length / 3; i++) {
 
-                            amplitudesDown3[i] = amplitudes[i * 3];
-                        }
-                        max = 0;
-                        for (int i = 0; i < amplitudes.length / 2; i++) {
-                            finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]) * noteDB[i];
-                            max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
+                        amplitudesDown3[i] = amplitudes[i * 3];
+                    }
+                    max = 0;
+                    for (int i = 0; i < amplitudes.length / 2; i++) {
+                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]) * noteDB[i];
+                        max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
 
 //                        max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
-                        }
+                    }
 //                    finalAmplitudes = amplitudes;
 //                    for (int i = 0; i < amplitudes.length / 2; i++) {
 //                        finalAmplitudes[i] /=max;
@@ -395,44 +421,44 @@ public class MainActivity extends ActionBarActivity {
 //
 //                    }
 
-                        double[][] finalPeaks = new double[100][2];
-                        int numFinalPeaks = 0;
+                    double[][] finalPeaks = new double[100][2];
+                    int numFinalPeaks = 0;
 
-                        for (int i = 1; i < finalAmplitudes.length / 2; i++) {
+                    for (int i = 1; i < finalAmplitudes.length / 2; i++) {
 
-                            // check some threshold and close values:
-                            if (finalAmplitudes[i] > max * 0.001
-                                    && finalAmplitudes[i] > finalAmplitudes[i - 1]
-                                    && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
+                        // check some threshold and close values:
+                        if (finalAmplitudes[i] > max * 0.001
+                                && finalAmplitudes[i] > finalAmplitudes[i - 1]
+                                && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
 //                            check for close range
-                                boolean biggestPeak = true;
-                                // get start index and end index for peak checking:
-                                int stIn = ((i - (int) (10 / fourierCoef)) < 0) ? i : (int) (10 / fourierCoef);
-                                int endIn = ((i + (int) (10 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (10 / fourierCoef);
-                                for (int j = -stIn; j < stIn + endIn; j++) {
+                            boolean biggestPeak = true;
+                            // get start index and end index for peak checking:
+                            int stIn = ((i - (int) (10 / fourierCoef)) < 0) ? i : (int) (10 / fourierCoef);
+                            int endIn = ((i + (int) (10 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (10 / fourierCoef);
+                            for (int j = -stIn; j < stIn + endIn; j++) {
 //                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
 
-                                    if (finalAmplitudes[i] < finalAmplitudes[i + j]) {
-                                        biggestPeak = false;
-                                        break;
-                                    }
+                                if (finalAmplitudes[i] < finalAmplitudes[i + j]) {
+                                    biggestPeak = false;
+                                    break;
                                 }
-
-                                if (biggestPeak) {
-                                    Log.d("found freqs FINAL", "i =  " + i + " freq: " + (i) * fourierCoef + " amp: " + finalAmplitudes[i]);
-
-                                    finalPeaks[numFinalPeaks][0] = i * fourierCoef;
-                                    finalPeaks[numFinalPeaks][1] = finalAmplitudes[i];
-
-                                    numFinalPeaks++;
-                                }
-
-
                             }
-                            if (numFinalPeaks > 98) break;
-                        }
 
-                        // check for peak again after HPS:
+                            if (biggestPeak) {
+                                Log.d("found freqs FINAL", "i =  " + i + " freq: " + (i) * fourierCoef + " amp: " + finalAmplitudes[i]);
+
+                                finalPeaks[numFinalPeaks][0] = i * fourierCoef;
+                                finalPeaks[numFinalPeaks][1] = finalAmplitudes[i];
+
+                                numFinalPeaks++;
+                            }
+
+
+                        }
+                        if (numFinalPeaks > 98) break;
+                    }
+
+                    // check for peak again after HPS:
 //                    for (int i = 0; i < numPeaks; i++) {
 //                        if (finalAmplitudes[(int) peaks[i]] > 0) {
 //                            finalPeaks[numFinalPeaks++] = (int) peaks[i] * fourierCoef;
@@ -441,44 +467,44 @@ public class MainActivity extends ActionBarActivity {
 //
 //
 //                    }
-                        double temp0 = 0, temp1 = 0;
+                    double temp0 = 0, temp1 = 0;
 
-                        for (int i = 0; i < numFinalPeaks; i++) {
-                            for (int j = 1; j < (numFinalPeaks - i); j++) {
+                    for (int i = 0; i < numFinalPeaks; i++) {
+                        for (int j = 1; j < (numFinalPeaks - i); j++) {
 
-                                if (finalPeaks[j - 1][1] > finalPeaks[j][1]) {
-                                    //swap the elements!
-                                    temp0 = finalPeaks[j - 1][0];
-                                    temp1 = finalPeaks[j - 1][1];
-                                    finalPeaks[j - 1][0] = finalPeaks[j][0];
-                                    finalPeaks[j - 1][1] = finalPeaks[j][1];
-                                    finalPeaks[j][0] = temp0;
-                                    finalPeaks[j][1] = temp1;
-                                }
-
+                            if (finalPeaks[j - 1][1] > finalPeaks[j][1]) {
+                                //swap the elements!
+                                temp0 = finalPeaks[j - 1][0];
+                                temp1 = finalPeaks[j - 1][1];
+                                finalPeaks[j - 1][0] = finalPeaks[j][0];
+                                finalPeaks[j - 1][1] = finalPeaks[j][1];
+                                finalPeaks[j][0] = temp0;
+                                finalPeaks[j][1] = temp1;
                             }
+
                         }
-
-
-                        String Sfreqs = "";
-
-                        for (int i = 0; i < numFinalPeaks; i++) {
-                            Sfreqs += " , " + finalPeaks[i][0];
-                        }
-//                    final String foundFreqs = Speaks;
-                        final String foundFreqsNum = Sfreqs;
-
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                TextView text = (TextView) findViewById(R.id.newPitch);
-                                text.setText("notes freqs found: " + foundFreqsNum);
-                                TextView note = (TextView) findViewById(R.id.req_note);
-                                note.setText("notes req: " + PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])));
-
-                            }
-                        });
                     }
+
+
+                    String Sfreqs = "";
+
+                    for (int i = 0; i < numFinalPeaks; i++) {
+                        Sfreqs += " , " + finalPeaks[i][0];
+                    }
+//                    final String foundFreqs = Speaks;
+                    final String foundFreqsNum = Sfreqs;
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            TextView text = (TextView) findViewById(R.id.newPitch);
+                            text.setText("notes freqs found: " + foundFreqsNum);
+                            TextView note = (TextView) findViewById(R.id.req_note);
+                            note.setText("notes req: " + PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])));
+
+                        }
+                    });
+//                    }
                 }
                 Log.d("silence", "is playing: " + !silence);
 
