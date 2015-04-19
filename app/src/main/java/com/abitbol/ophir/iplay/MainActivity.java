@@ -530,7 +530,7 @@ public class MainActivity extends ActionBarActivity {
                             TextView correctness = (TextView) findViewById(R.id.cor_note);
                             if(correctFound)
                             {
-                                correctness.setText("correct note!");
+                                correctness.setText("Correct note!");
                                 correctness.setTextColor(Color.GREEN);
 
                             }
