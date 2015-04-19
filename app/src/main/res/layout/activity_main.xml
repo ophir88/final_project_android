@@ -44,6 +44,14 @@
         android:id="@+id/req_note"
         android:layout_gravity="left|bottom" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="correct"
+        android:id="@+id/cor_note"
+        android:layout_gravity="right|bottom" />
+
 </FrameLayout>
 
 

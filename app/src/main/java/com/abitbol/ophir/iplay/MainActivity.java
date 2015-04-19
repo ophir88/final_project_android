@@ -17,6 +17,7 @@ import be.tarsos.dsp.util.PitchConverter;
 import be.tarsos.dsp.util.fft.FFT;
 import be.tarsos.dsp.util.fft.HannWindow;
 
+import android.graphics.Color;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
@@ -209,75 +210,76 @@ public class MainActivity extends ActionBarActivity {
 
                 if (!silence) {
 
-//               ===============================================================
-//               ========================  Envelope  ===========================
-//               ===============================================================
-
-                    int peakwindowsize = 206;
-                    double average = 0.0;
-                    float tempMax = 0;
-                    for (int i = 0; i < envelope.length - peakwindowsize; i++) {
-
-                        average += envelope[i];
-                        tempMax = 0;
-                        for (int j = i; j < i + peakwindowsize; j++) {
-                            tempMax = (tempMax < envelope[j]) ? envelope[j] : tempMax;
-                        }
-                        envelope[i] = tempMax;
-                    }
-                    for (int i = envelope.length - peakwindowsize; i < envelope.length; i++) {
-                        average += envelope[i];
-                        tempMax = 0;
-                        for (int j = i - peakwindowsize; j < i; j++) {
-                            tempMax = (tempMax < audioFloatBuffer[j]) ? audioFloatBuffer[j] : tempMax;
-                        }
-                        envelope[i] = tempMax;
-                    }
-                    average /= envelope.length;
-
-//               ===============================================================
-//               ========================  find peaks  =========================
-//               ===============================================================
-
-
-//               *-*-*-*-*-*-*-*- variables *-*-*-*-*-*-*-*-
-                    int[] ampPeak = new int[2]; // up to two peaks in a buffer:
-                    int peakIdx = 0;
-                    boolean inPeak = false, continuousNote = false;
-
-                    int peakStartLoc = 0;
-                    int peakEndLoc = 0;
-
-                    double thresh = average;
-                    for (int i = 0; i < envelope.length; i++) {
-
-                        if (!inPeak) { // if we aren't in a peaks
-                            if (envelope[i] > thresh) { // and the amplitude is higher than average
-                                inPeak = true; // then we start a peak
-                                peakStartLoc = i;
-                            }
-                        } else {
-                            if (envelope[i] < thresh) { // and the amplitude is higher than average
-                                inPeak = false; // then we start a peak
-                                peakEndLoc = i;
-
-                                if (peakEndLoc - peakStartLoc > windowSize / 4) {
-                                    ampPeak[PEAK_START] = peakStartLoc;
-                                    ampPeak[PEAK_END] = peakStartLoc;
-//                                    peakIdx++;
-                                }
-
-                            }
-                        }
-
-
-                    }
-
-                    if (inPeak && peakStartLoc < windowSize * 7 / 8) {
-                        ampPeak[PEAK_START] = peakStartLoc;
-                        ampPeak[PEAK_END] = (int) windowSize - 1;
-                        continuousNote = true;
-                    }
+////               ===============================================================
+////               ========================  Envelope  ===========================
+////               ===============================================================
+//
+//                    int peakwindowsize = 206;
+//                    double average = 0.0;
+//                    float tempMax = 0;
+//                    for (int i = 0; i < envelope.length - peakwindowsize; i++) {
+//
+//                        average += envelope[i];
+//                        tempMax = 0;
+//                        for (int j = i; j < i + peakwindowsize; j++) {
+//                            tempMax = (tempMax < envelope[j]) ? envelope[j] : tempMax;
+//                        }
+//                        envelope[i] = tempMax;
+//                    }
+//                    for (int i = envelope.length - peakwindowsize; i < envelope.length; i++) {
+//                        average += envelope[i];
+//                        tempMax = 0;
+//                        for (int j = i - peakwindowsize; j < i; j++) {
+//                            tempMax = (tempMax < audioFloatBuffer[j]) ? audioFloatBuffer[j] : tempMax;
+//                        }
+//                        envelope[i] = tempMax;
+//                    }
+//                    average /= envelope.length;
+//
+////               ===============================================================
+////               ========================  find peaks  =========================
+////               ===============================================================
+//
+//
+////               *-*-*-*-*-*-*-*- variables *-*-*-*-*-*-*-*-
+//                    int[]ampPeak = new int[2]; // up to two peaks in a buffer:
+//                    int peakIdx = 0;
+//                    boolean inPeak = false, continuousNote = false;
+//
+//                    int peakStartLoc = 0;
+//                    int peakEndLoc = 0;
+//
+//                    double thresh = average;
+//                    for (int i = 0; i < envelope.length; i++) {
+//
+//                        if (!inPeak) { // if we aren't in a peaks
+//                            if (envelope[i] > thresh) { // and the amplitude is higher than average
+//                                inPeak = true; // then we start a peak
+//                                peakStartLoc = i;
+//                            }
+//                        } else {
+//                            if (envelope[i] < thresh) { // and the amplitude is higher than average
+//                                inPeak = false; // then we start a peak
+//                                peakEndLoc = i;
+//
+//                                if (peakEndLoc - peakStartLoc > windowSize / 4) {
+//                                    ampPeak[PEAK_START] = peakStartLoc;
+//                                    ampPeak[PEAK_END] = peakStartLoc;
+////                                    peakIdx++;
+//                                }
+//
+//                            }
+//                        }
+//
+//
+//                    }
+//
+//                    if(inPeak && peakStartLoc<windowSize*7/8)
+//                    {
+//                        ampPeak[PEAK_START] = peakStartLoc;
+//                        ampPeak[1] = (int)windowSize-1;
+//                        continuousNote = true;
+//                    }
 
 //
 //
@@ -312,13 +314,12 @@ public class MainActivity extends ActionBarActivity {
 //                end
 
 
-                    int length = ampPeak[PEAK_END] - ampPeak[PEAK_START];
-                    float[] peakFloat = new float[length];
-
+//                    int length = ampPeak[1]-ampPeak[0];
                     float maxAmp = 0;
-                    for (int j = 0; j < length; j++) {
-                        peakFloat[j] = audioFloatBuffer[PEAK_START + j];
-                    }
+//                    for (int j = 0; j < audioFloatBuffer.length; j++) {
+//                        maxAmp = (maxAmp < audioFloatBuffer[j]) ? audioFloatBuffer[j] : maxAmp;
+//
+//                    }
 
 //                    if (maxAmp > 0.1) {
                     Log.d("max amp", "max: " + maxAmp);
@@ -394,6 +395,8 @@ public class MainActivity extends ActionBarActivity {
 
                     float[] amplitudesDown2 = new float[bufferSize]; // downsample by half
                     float[] amplitudesDown3 = new float[bufferSize]; // downsample by half
+                    float[] amplitudesDown4 = new float[bufferSize]; // downsample by half
+                    float[] amplitudesDown5 = new float[bufferSize]; // downsample by half
 
                     for (int i = 0; i < amplitudesDown2.length / 2; i++) {
 
@@ -403,9 +406,18 @@ public class MainActivity extends ActionBarActivity {
 
                         amplitudesDown3[i] = amplitudes[i * 3];
                     }
+                    for (int i = 0; i < amplitudesDown3.length / 4; i++) {
+
+                        amplitudesDown4[i] = amplitudes[i * 4];
+                    }
+                    for (int i = 0; i < amplitudesDown3.length / 5; i++) {
+
+                        amplitudesDown5[i] = amplitudes[i * 5];
+                    }
                     max = 0;
                     for (int i = 0; i < amplitudes.length / 2; i++) {
-                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]) * noteDB[i];
+                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]
+                                * amplitudesDown4[i] * amplitudesDown5[i]) * noteDB[i];
                         max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
 
 //                        max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
@@ -494,18 +506,53 @@ public class MainActivity extends ActionBarActivity {
 //                    final String foundFreqs = Speaks;
                     final String foundFreqsNum = Sfreqs;
 
+                    boolean NoteCorrect = false, allCorrect = false;
+                    for (int i = 0; i < expNotes.length; i++) {
+                        for (int j = 0; j < numFinalPeaks; j++) {
+                            Log.d("CORRECT",PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])) + "  -  " + finalPeaks[j][0]  );
+
+                            if (Math.abs(PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])) - finalPeaks[j][0]) < 2) {
+                                NoteCorrect = true;
+                                break;
+                            }
+                        }
+                        if (NoteCorrect) break;
+                    }
+
+                    final boolean correctFound = NoteCorrect;
+
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             TextView text = (TextView) findViewById(R.id.newPitch);
                             text.setText("notes freqs found: " + foundFreqsNum);
-                            TextView note = (TextView) findViewById(R.id.req_note);
-                            note.setText("notes req: " + PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])));
 
+                            TextView correctness = (TextView) findViewById(R.id.cor_note);
+                            if(correctFound)
+                            {
+                                correctness.setText("correct note!");
+                                correctness.setTextColor(Color.GREEN);
+
+                            }
+                            else
+                            {
+                                correctness.setTextColor(Color.RED);
+                                correctness.setText("wrong note!");
+                            }
                         }
                     });
 //                    }
                 }
+
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        TextView note = (TextView) findViewById(R.id.req_note);
+                        note.setText("notes req: " + PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])));
+
+                    }
+                });
                 Log.d("silence", "is playing: " + !silence);
 
 
