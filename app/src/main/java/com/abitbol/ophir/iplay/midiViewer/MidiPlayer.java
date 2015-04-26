@@ -542,6 +542,18 @@ public class MidiPlayer extends LinearLayout {
 
         // Hide the midi player, wait a little for the view
         // to refresh, and then start playing
+
+        /**
+         * Idea:
+         * listener.start.
+         * the listener will contain the activite, etc.
+         * get current time.
+         * check not paused etc.
+         * call shades etc.
+         *
+         */
+
+
         this.setVisibility(View.GONE);
         timer.removeCallbacks(TimerCallback);
         timer.postDelayed(DoPlay, 1000);
@@ -717,6 +729,8 @@ public class MidiPlayer extends LinearLayout {
      */
     Runnable TimerCallback = new Runnable() {
         public void run() {
+            Log.d("shades" , "curr time: " + currentPulseTime);
+
             if (midifile == null || sheet == null) {
                 playstate = stopped;
                 return;
@@ -747,7 +761,7 @@ public class MidiPlayer extends LinearLayout {
                 }
                 sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, true);
                 piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
-                timer.postDelayed(TimerCallback, 100);
+                timer.postDelayed(TimerCallback, 312);
                 return;
             } else if (playstate == initPause) {
                 long msec = SystemClock.uptimeMillis() - startTime;

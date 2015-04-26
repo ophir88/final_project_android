@@ -15,6 +15,7 @@ package com.abitbol.ophir.iplay.midiViewer;
 import java.util.*;
 
 import android.graphics.*;
+import android.util.Log;
 
 
 /* @class Staff
@@ -532,7 +533,7 @@ public class Staff {
                 paint.setColor(shade);
                 canvas.drawRect(0, 0, curr.getWidth(), this.getHeight(), paint);
                 paint.setStyle(Paint.Style.STROKE);
-                paint.setColor(Color.BLACK);
+                paint.setColor(Color.BLUE);
                 curr.Draw(canvas, paint, ytop);
                 canvas.translate(-xpos, 0);
                 redrawLines = true;

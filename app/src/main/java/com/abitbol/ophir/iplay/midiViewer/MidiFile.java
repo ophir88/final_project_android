@@ -1826,7 +1826,10 @@ public class MidiFile {
          System.out.print(f.toString());
          **/
     }
-
+    public int returnPPQ()
+    {
+        return quarternote;
+    }
 }  /* End class MidiFile */
 
 

@@ -180,7 +180,7 @@ public class MidiOptions implements Serializable {
         defaultTime = midifile.getTime();
         key = -1;
         combineInterval = 40;
-        shade1Color = Color.rgb(210, 205, 220);
+        shade1Color = Color.rgb(220, 205, 220);
         shade2Color = Color.rgb(150, 200, 220);
 
 

@@ -71,6 +71,7 @@ public class SheetMusicActivity extends Activity {
         this.setTitle("MidiSheetMusic: " + title);
         try {
             midifile = new MidiFile(data, title);
+
         } catch (MidiFileException e) {
             this.finish();
             return;
@@ -79,6 +80,13 @@ public class SheetMusicActivity extends Activity {
         // Initialize the settings (MidiOptions).
         // If previous settings have been saved, used those
         options = new MidiOptions(midifile);
+        double BPM = 60000000 / options.tempo;
+        double PPQ = midifile.returnPPQ();
+        double p2s = 60000 / (double) ((BPM * PPQ));
+//        Log.d("MIDIFILE" , "BMP: " + options.tempo);
+        Log.d("MIDIFILE" , "coeff: " + p2s);
+
+
         CRC32 crc = new CRC32();
         crc.update(data);
         midiCRC = crc.getValue();

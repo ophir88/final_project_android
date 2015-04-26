@@ -15,6 +15,7 @@ package com.abitbol.ophir.iplay.midiViewer;
 import java.util.*;
 
 import android.graphics.*;
+import android.util.Log;
 
 
 /**
@@ -588,6 +589,7 @@ public class ChordSymbol implements MusicSymbol {
     public void DrawNotes(Canvas canvas, Paint paint, int ytop, WhiteNote topstaff) {
         paint.setStrokeWidth(1);
         for (NoteData note : notedata) {
+
             /* Get the x,y position to draw the note */
             int ynote = ytop + topstaff.Dist(note.whitenote) *
                     SheetMusic.NoteHeight / 2;
@@ -604,6 +606,7 @@ public class ChordSymbol implements MusicSymbol {
             canvas.rotate(-45);
 
             if (sheetmusic != null) {
+
                 paint.setColor(sheetmusic.NoteColor(note.number));
             } else {
                 paint.setColor(Color.BLACK);

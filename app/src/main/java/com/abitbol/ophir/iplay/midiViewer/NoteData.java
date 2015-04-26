@@ -18,6 +18,8 @@ package com.abitbol.ophir.iplay.midiViewer;
  * Contains fields for displaying a single note in a chord.
  */
 public class NoteData {
+
+
     public int number;
     /**
      * The Midi note number, used to determine the color
@@ -35,6 +37,8 @@ public class NoteData {
      * Whether to draw note to the left or right of the stem
      */
     public Accid accid;            /** Used to create the AccidSymbols for the chord */
+
+
 }
 
 
