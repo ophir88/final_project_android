@@ -52,6 +52,8 @@ public class SheetMusicActivity extends Activity {
     private MidiOptions options; /* The options for sheet music and sound */
     private long midiCRC;      /* CRC of the midi bytes */
 
+    private Thread listenerThread;
+
     /**
      * Create this SheetMusicActivity.  The Intent should have two parameters:
      * - MidiTitleID: The title of the song (String)

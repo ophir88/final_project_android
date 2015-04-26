@@ -19,6 +19,7 @@ import android.app.*;
 import android.content.*;
 import android.graphics.*;
 import android.os.*;
+import android.util.Log;
 import android.view.*;
 import android.view.animation.AnimationUtils;
 
@@ -1357,6 +1358,7 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
      */
     public void ShadeNotes(int currentPulseTime, int prevPulseTime,
                            boolean scrollGradually) {
+        Log.d("shading" , "curr: " + currentPulseTime + " prev: " + prevPulseTime);
         if (!surfaceReady || staffs == null) {
             return;
         }
