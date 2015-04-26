@@ -10,10 +10,11 @@
  *  GNU General Public License for more details.
  */
 
-package com.midisheetmusic;
+package com.abitbol.ophir.iplay.midiViewer;
 
 import java.io.*;
 import java.util.*;
+
 import android.app.*;
 import android.os.*;
 import android.widget.*;
@@ -21,6 +22,7 @@ import android.util.Log;
 import android.view.*;
 import android.content.*;
 
+import com.abitbol.ophir.iplay.R;
 
 
 public class FileBrowserActivity extends ListActivity {
@@ -52,8 +54,7 @@ public class FileBrowserActivity extends ListActivity {
     private void loadDirectory(String newdirectory) {
         if (newdirectory.equals("../")) {
             directory = new File(directory).getParent();
-        }
-        else {
+        } else {
             directory = newdirectory;
         }
         directoryView.setText(directory);
@@ -76,17 +77,15 @@ public class FileBrowserActivity extends ListActivity {
                     if (file.isDirectory()) {
                         FileUri fileuri = new FileUri(file.getAbsolutePath() + "/");
                         sortedDirs.add(fileuri);
-                    }
-                    else if (filename.endsWith(".mid") || filename.endsWith(".MID") ||
-                             filename.endsWith(".midi") || filename.endsWith(".MIDI")) {
-                        
+                    } else if (filename.endsWith(".mid") || filename.endsWith(".MID") ||
+                            filename.endsWith(".midi") || filename.endsWith(".MIDI")) {
+
                         FileUri fileuri = new FileUri(file.getAbsolutePath());
                         sortedFiles.add(fileuri);
                     }
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
         }
 
         if (sortedDirs.size() > 0) {
@@ -100,9 +99,10 @@ public class FileBrowserActivity extends ListActivity {
         adapter = new IconArrayAdapter<FileUri>(this, android.R.layout.simple_list_item_1, filelist);
         this.setListAdapter(adapter);
     }
-    
 
-    /** When a user selects an item:
+
+    /**
+     * When a user selects an item:
      * - If it's a directory, load that directory.
      * - If it's a file, ??
      */
@@ -112,7 +112,7 @@ public class FileBrowserActivity extends ListActivity {
         FileUri file = (FileUri) this.getListAdapter().getItem(position);
         if (file.isDirectory()) {
             this.loadDirectory(file.filePath());
-             return;
+            return;
         }
         byte[] data = file.getData();
         if (data == null || data.length <= 6 || !hasMidiHeader(data)) {
@@ -123,9 +123,11 @@ public class FileBrowserActivity extends ListActivity {
         intent.putExtra(SheetMusicActivity.MidiDataID, data);
         intent.putExtra(SheetMusicActivity.MidiTitleID, file.toString());
         startActivity(intent);
-    }  
+    }
 
-    /** Return true if the data starts with the header MTrk */
+    /**
+     * Return true if the data starts with the header MTrk
+     */
     boolean hasMidiHeader(byte[] data) {
         String s;
         try {
@@ -134,20 +136,21 @@ public class FileBrowserActivity extends ListActivity {
                 return true;
             else
                 return false;
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             return false;
         }
     }
 
-    /** Show an error dialog with the given message */
+    /**
+     * Show an error dialog with the given message
+     */
     void showErrorDialog(String message) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(message);
         builder.setCancelable(false);
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-           public void onClick(DialogInterface dialog, int id) {
-           }
+            public void onClick(DialogInterface dialog, int id) {
+            }
         });
         AlertDialog alert = builder.create();
         alert.show();

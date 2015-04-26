@@ -10,10 +10,11 @@
  *  GNU General Public License for more details.
  */
 
-package com.midisheetmusic;
+package com.abitbol.ophir.iplay.midiViewer;
 
 import java.io.*;
 import java.util.*;
+
 import android.net.*;
 import android.app.*;
 import android.os.*;
@@ -26,12 +27,15 @@ import android.provider.*;
 import android.database.*;
 import android.text.*;
 
+import com.abitbol.ophir.iplay.R;
 
-/** @class ScanMidiFiles
+
+/**
+ * @class ScanMidiFiles
  * The ScanMidiFiles class is used to scan for midi files
  * on a background thread.
  */
-class ScanMidiFiles extends AsyncTask<Integer, Integer, ArrayList<FileUri> > {
+class ScanMidiFiles extends AsyncTask<Integer, Integer, ArrayList<FileUri>> {
     private ArrayList<FileUri> songlist;
     private File rootdir;
     private ChooseSongActivity activity;
@@ -50,8 +54,8 @@ class ScanMidiFiles extends AsyncTask<Integer, Integer, ArrayList<FileUri> > {
             rootdir = Environment.getExternalStorageDirectory();
             Toast message = Toast.makeText(activity, "Scanning " + rootdir.getAbsolutePath() + " for MIDI files", Toast.LENGTH_SHORT);
             message.show();
+        } catch (Exception e) {
         }
-        catch (Exception e) {}
     }
 
     @Override
@@ -61,8 +65,7 @@ class ScanMidiFiles extends AsyncTask<Integer, Integer, ArrayList<FileUri> > {
         }
         try {
             loadMidiFilesFromDirectory(rootdir, 1);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
         }
         return songlist;
     }
@@ -84,7 +87,7 @@ class ScanMidiFiles extends AsyncTask<Integer, Integer, ArrayList<FileUri> > {
     protected void onCancelled() {
         this.activity = null;
     }
-    
+
     /* Given a directory, add MIDI files (ending in .mid) to the songlist.
      * If the directory contains subdirectories, call this method recursively.
      */
@@ -98,7 +101,7 @@ class ScanMidiFiles extends AsyncTask<Integer, Integer, ArrayList<FileUri> > {
         File[] files = dir.listFiles();
         if (files == null) {
             return;
-        }        
+        }
         for (File file : files) {
             if (file == null) {
                 continue;
@@ -107,7 +110,7 @@ class ScanMidiFiles extends AsyncTask<Integer, Integer, ArrayList<FileUri> > {
                 return;
             }
             if (file.getName().endsWith(".mid") || file.getName().endsWith(".MID") ||
-                file.getName().endsWith(".midi")) {
+                    file.getName().endsWith(".midi")) {
                 FileUri song = new FileUri(file.getAbsolutePath());
                 songlist.add(song);
             }
@@ -118,36 +121,41 @@ class ScanMidiFiles extends AsyncTask<Integer, Integer, ArrayList<FileUri> > {
             }
             try {
                 if (file.isDirectory()) {
-                    loadMidiFilesFromDirectory(file, depth+1);
+                    loadMidiFilesFromDirectory(file, depth + 1);
                 }
+            } catch (Exception e) {
             }
-            catch (Exception e) {}
         }
     }
 }
 
 
-
-
-/** @class ChooseSongActivity
+/**
+ * @class ChooseSongActivity
  * The ChooseSongActivity class is used to display a list of
  * songs to choose from.  The list is created from the songs
- * shipped with MidiSheetMusic (in the assets directory), and 
- * also by searching for midi files in the internal/external 
+ * shipped with MidiSheetMusic (in the assets directory), and
+ * also by searching for midi files in the internal/external
  * device storage.
- *
+ * <p/>
  * When a song is chosen, this calls the SheetMusicAcitivty, passing
  * the raw midi byte[] data as a parameter in the Intent.
- */ 
+ */
 public class ChooseSongActivity extends ListActivity implements TextWatcher {
 
-    /** The complete list of midi files */
+    /**
+     * The complete list of midi files
+     */
     ArrayList<FileUri> songlist;
 
-    /** Textbox to filter the songs by name */
+    /**
+     * Textbox to filter the songs by name
+     */
     EditText filterText;
 
-    /** Task to scan for midi files */
+    /**
+     * Task to scan for midi files
+     */
     ScanMidiFiles scanner;
 
     IconArrayAdapter<FileUri> adapter;
@@ -159,10 +167,11 @@ public class ChooseSongActivity extends ListActivity implements TextWatcher {
     public Object onRetainNonConfigurationInstance() {
         return songlist;
     }
-    
-    
+
+
     @Override
     public void onCreate(Bundle state) {
+
         super.onCreate(state);
         setContentView(R.layout.choose_song);
         setTitle("MidiSheetMusic: Choose Song");
@@ -219,8 +228,9 @@ public class ChooseSongActivity extends ListActivity implements TextWatcher {
     }
 
 
-    /** Scan the SD card for midi songs.  Since this is a lengthy
-     *  operation, perform the scan in a background thread.
+    /**
+     * Scan the SD card for midi songs.  Since this is a lengthy
+     * operation, perform the scan in a background thread.
      */
     public void scanForSongs() {
         if (scanner != null) {
@@ -256,34 +266,35 @@ public class ChooseSongActivity extends ListActivity implements TextWatcher {
         scanner = null;
     }
 
-    /** Load all the sample midi songs from the assets directory into songlist.
-     *  Look for files ending with ".mid"
+    /**
+     * Load all the sample midi songs from the assets directory into songlist.
+     * Look for files ending with ".mid"
      */
     void loadAssetMidiFiles() {
         try {
             AssetManager assets = this.getResources().getAssets();
             String[] files = assets.list("");
-            for (String path: files) {
-                if (path.endsWith(".mid")) {
+            for (String path : files) {
+                if (path.endsWith(".midi")) {
                     FileUri file = new FileUri(assets, path, path);
                     songlist.add(file);
                 }
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
         }
     }
 
-    
-    /** Look for midi files (with mime-type audio/midi) in the 
+
+    /**
+     * Look for midi files (with mime-type audio/midi) in the
      * internal/external storage. Add them to the songlist.
      */
     private void loadMidiFilesFromProvider(Uri content_uri) {
         ContentResolver resolver = getContentResolver();
-        String columns[] = { 
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.TITLE, 
-            MediaStore.Audio.Media.MIME_TYPE 
+        String columns[] = {
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.MIME_TYPE
         };
         String selection = MediaStore.Audio.Media.MIME_TYPE + " LIKE '%mid%'";
         Cursor cursor = resolver.query(content_uri, columns, selection, null, null);
@@ -294,7 +305,7 @@ public class ChooseSongActivity extends ListActivity implements TextWatcher {
             cursor.close();
             return;
         }
-        
+
         do {
             int idColumn = cursor.getColumnIndex(MediaStore.Audio.Media._ID);
             int titleColumn = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
@@ -313,10 +324,11 @@ public class ChooseSongActivity extends ListActivity implements TextWatcher {
         cursor.close();
     }
 
-    /** When a song is clicked on, start a SheetMusicActivity.
-     *  Read the raw byte[] data of the midi file.
-     *  Pass the raw byte[] data as a parameter in the Intent.
-     *  Pass the midi file Title as a parameter in the Intent.
+    /**
+     * When a song is clicked on, start a SheetMusicActivity.
+     * Read the raw byte[] data of the midi file.
+     * Pass the raw byte[] data as a parameter in the Intent.
+     * Pass the midi file Title as a parameter in the Intent.
      */
     @Override
     protected void onListItemClick(ListView parent, View view, int position, long id) {
@@ -339,8 +351,9 @@ public class ChooseSongActivity extends ListActivity implements TextWatcher {
     }
 
 
-    /** As text is entered in the filter box, filter the list of
-     *  midi songs to display.
+    /**
+     * As text is entered in the filter box, filter the list of
+     * midi songs to display.
      */
     @Override
     public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -351,13 +364,15 @@ public class ChooseSongActivity extends ListActivity implements TextWatcher {
     public void afterTextChanged(Editable s) {
     }
 
-   
+
     @Override
     public void beforeTextChanged(CharSequence s, int start, int count, int after) {
     }
 
 
-    /** Return true if the data starts with the header MTrk */
+    /**
+     * Return true if the data starts with the header MTrk
+     */
     boolean hasMidiHeader(byte[] data) {
         String s;
         try {
@@ -366,19 +381,22 @@ public class ChooseSongActivity extends ListActivity implements TextWatcher {
                 return true;
             else
                 return false;
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             return false;
         }
     }
 
-    /** Start the FileBrowser activity, which is used to select a midi file */
+    /**
+     * Start the FileBrowser activity, which is used to select a midi file
+     */
     void browseForSongs() {
         Intent intent = new Intent(this, FileBrowserActivity.class);
         startActivity(intent);
     }
 
-    /** When the menu button is pressed, initialize the menus. */
+    /**
+     * When the menu button is pressed, initialize the menus.
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
@@ -386,33 +404,36 @@ public class ChooseSongActivity extends ListActivity implements TextWatcher {
         return true;
     }
 
-    /** Callback when a menu item is selected.
-     *  - Scan for Midi Files : Scan the SD card for midi files
-     *  - Browse Midi Files : Let the user browser for midi files
+    /**
+     * Callback when a menu item is selected.
+     * - Scan for Midi Files : Scan the SD card for midi files
+     * - Browse Midi Files : Let the user browser for midi files
      */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-          case R.id.scan_files:
-            scanForSongs();
-            return true;
-          case R.id.browse_files:
-            browseForSongs();
-            return true;
-          default:
-            return super.onOptionsItemSelected(item);
+            case R.id.scan_files:
+                scanForSongs();
+                return true;
+            case R.id.browse_files:
+                browseForSongs();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 
-    
-    /** Show an error dialog with the given message */
+
+    /**
+     * Show an error dialog with the given message
+     */
     void showErrorDialog(String message) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(message);
         builder.setCancelable(false);
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-           public void onClick(DialogInterface dialog, int id) {
-           }
+            public void onClick(DialogInterface dialog, int id) {
+            }
         });
         AlertDialog alert = builder.create();
         alert.show();

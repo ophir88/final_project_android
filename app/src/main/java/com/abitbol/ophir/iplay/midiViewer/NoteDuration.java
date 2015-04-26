@@ -10,13 +10,15 @@
  *  GNU General Public License for more details.
  */
 
-package com.midisheetmusic;
+package com.abitbol.ophir.iplay.midiViewer;
 
-/** The possible note durations */
+/**
+ * The possible note durations
+ */
 public enum NoteDuration {
-  ThirtySecond, Sixteenth, Triplet, Eighth,
-  DottedEighth, Quarter, DottedQuarter,
-  Half, DottedHalf, Whole
+    ThirtySecond, Sixteenth, Triplet, Eighth,
+    DottedEighth, Quarter, DottedQuarter,
+    Half, DottedHalf, Whole
 }
 
 

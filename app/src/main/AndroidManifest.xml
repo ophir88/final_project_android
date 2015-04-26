@@ -1,22 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.abitbol.ophir.iplay" >
+    package="com.abitbol.ophir.iplay">
+
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/icon"
         android:label="@string/app_name"
-        android:theme="@style/AppTheme" >
+        android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
-            android:label="@string/app_name" >
+            android:name=".midiViewer.MidiSheetMusicActivity"
+            android:configChanges="orientation"
+            android:label="@string/app_name"
+            android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".midiViewer.ChooseSongActivity"></activity>
+        <activity android:name=".midiViewer.FileBrowserActivity"></activity>
+        <activity android:name=".midiViewer.SettingsActivity"></activity>
+        <activity android:name=".midiViewer.HelpActivity"></activity>
+        <activity
+            android:name=".midiViewer.SheetMusicActivity"
+            android:configChanges="orientation"
+            android:screenOrientation="landscape"></activity>
     </application>
-
 </manifest>

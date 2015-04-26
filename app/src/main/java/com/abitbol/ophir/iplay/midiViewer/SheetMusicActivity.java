@@ -10,10 +10,12 @@
  *  GNU General Public License for more details.
  */
 
-package com.midisheetmusic;
+package com.abitbol.ophir.iplay.midiViewer;
+
 
 import java.io.*;
 import java.net.*;
+
 import android.app.*;
 import android.os.*;
 import android.util.*;
@@ -23,22 +25,25 @@ import android.graphics.*;
 import android.content.*;
 import android.content.res.*;
 import android.media.*;
+
+import com.abitbol.ophir.iplay.R;
+
 import java.util.zip.CRC32;
 
-/** @class SheetMusicActivity
- *
+/**
+ * @class SheetMusicActivity
+ * <p/>
  * The SheetMusicActivity is the main activity. The main components are:
  * - MidiPlayer : The buttons and speed bar at the top.
  * - Piano : For highlighting the piano notes during playback.
  * - SheetMusic : For highlighting the sheet music notes during playback.
- *
  */
 public class SheetMusicActivity extends Activity {
 
     public static final String MidiDataID = "MidiDataID";
     public static final String MidiTitleID = "MidiTitleID";
     public static final int settingsRequestCode = 1;
-    
+
     private MidiPlayer player;   /* The play/stop/rewind toolbar */
     private Piano piano;         /* The piano at the top */
     private SheetMusic sheet;    /* The sheet music */
@@ -47,10 +52,11 @@ public class SheetMusicActivity extends Activity {
     private MidiOptions options; /* The options for sheet music and sound */
     private long midiCRC;      /* CRC of the midi bytes */
 
-     /** Create this SheetMusicActivity.  The Intent should have two parameters:
-      * - MidiTitleID: The title of the song (String)
-      * - MidiDataID: The raw byte[] data of the midi file.
-      */
+    /**
+     * Create this SheetMusicActivity.  The Intent should have two parameters:
+     * - MidiTitleID: The title of the song (String)
+     * - MidiDataID: The raw byte[] data of the midi file.
+     */
     @Override
     public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -65,8 +71,7 @@ public class SheetMusicActivity extends Activity {
         this.setTitle("MidiSheetMusic: " + title);
         try {
             midifile = new MidiFile(data, title);
-        }
-        catch (MidiFileException e) {
+        } catch (MidiFileException e) {
             this.finish();
             return;
         }
@@ -75,7 +80,7 @@ public class SheetMusicActivity extends Activity {
         // If previous settings have been saved, used those
         options = new MidiOptions(midifile);
         CRC32 crc = new CRC32();
-        crc.update(data); 
+        crc.update(data);
         midiCRC = crc.getValue();
         SharedPreferences settings = getPreferences(0);
         options.scrollVert = settings.getBoolean("scrollVert", false);
@@ -89,7 +94,7 @@ public class SheetMusicActivity extends Activity {
         createView();
         createSheetMusic(options);
     }
-    
+
     /* Create the MidiPlayer and Piano views */
     void createView() {
         layout = new LinearLayout(this);
@@ -103,16 +108,17 @@ public class SheetMusicActivity extends Activity {
         layout.requestLayout();
     }
 
-    /** Create the SheetMusic view with the given options */
-    private void 
+    /**
+     * Create the SheetMusic view with the given options
+     */
+    private void
     createSheetMusic(MidiOptions options) {
         if (sheet != null) {
             layout.removeView(sheet);
         }
         if (!options.showPiano) {
             piano.setVisibility(View.GONE);
-        }
-        else {
+        } else {
             piano.setVisibility(View.VISIBLE);
         }
         sheet = new SheetMusic(this);
@@ -127,13 +133,17 @@ public class SheetMusicActivity extends Activity {
     }
 
 
-    /** Always display this activity in landscape mode. */
+    /**
+     * Always display this activity in landscape mode.
+     */
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
     }
 
-    /** When the menu button is pressed, initialize the menus. */
+    /**
+     * When the menu button is pressed, initialize the menus.
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         if (player != null) {
@@ -144,44 +154,47 @@ public class SheetMusicActivity extends Activity {
         return true;
     }
 
-    /** Callback when a menu item is selected.
-     *  - Choose Song : Choose a new song
-     *  - Song Settings : Adjust the sheet music and sound options
-     *  - Save As Images: Save the sheet music as PNG images
-     *  - Help : Display the HTML help screen
+    /**
+     * Callback when a menu item is selected.
+     * - Choose Song : Choose a new song
+     * - Song Settings : Adjust the sheet music and sound options
+     * - Save As Images: Save the sheet music as PNG images
+     * - Help : Display the HTML help screen
      */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-          case R.id.choose_song:
-            chooseSong();
-            return true;
-          case R.id.song_settings:
-            changeSettings();
-            return true;
-          case R.id.save_images:
-            showSaveImagesDialog();
-            return true;
-          case R.id.help:
-            showHelp();
-            return true;
-          default:
-            return super.onOptionsItemSelected(item);
+            case R.id.choose_song:
+                chooseSong();
+                return true;
+            case R.id.song_settings:
+                changeSettings();
+                return true;
+            case R.id.save_images:
+                showSaveImagesDialog();
+                return true;
+            case R.id.help:
+                showHelp();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 
-    /** To choose a new song, simply finish this activity.
-     *  The previous activity is always the ChooseSongActivity.
+    /**
+     * To choose a new song, simply finish this activity.
+     * The previous activity is always the ChooseSongActivity.
      */
     private void chooseSong() {
         this.finish();
     }
 
-    /** To change the sheet music options, start the SettingsActivity.
-     *  Pass the current MidiOptions as a parameter to the Intent.
-     *  Also pass the 'default' MidiOptions as a parameter to the Intent.
-     *  When the SettingsActivity has finished, the onActivityResult()
-     *  method will be called.
+    /**
+     * To change the sheet music options, start the SettingsActivity.
+     * Pass the current MidiOptions as a parameter to the Intent.
+     * Also pass the 'default' MidiOptions as a parameter to the Intent.
+     * When the SettingsActivity has finished, the onActivityResult()
+     * method will be called.
      */
     private void changeSettings() {
         MidiOptions defaultOptions = new MidiOptions(midifile);
@@ -194,24 +207,25 @@ public class SheetMusicActivity extends Activity {
 
     /* Show the "Save As Images" dialog */
     private void showSaveImagesDialog() {
-         LayoutInflater inflator = LayoutInflater.from(this);
-         final View dialogView= inflator.inflate(R.layout.save_images_dialog, null);
-         final EditText filenameView = (EditText)dialogView.findViewById(R.id.save_images_filename);
-         filenameView.setText(midifile.getFileName().replace("_", " ") );
-         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-         builder.setTitle(R.string.save_images_str);
-         builder.setView(dialogView);
-         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-             public void onClick(DialogInterface builder, int whichButton) {
-                 saveAsImages(filenameView.getText().toString());
-             }
-         });
-         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-             public void onClick(DialogInterface builder, int whichButton) {
-             }
-         });
-         AlertDialog dialog = builder.create();
-         dialog.show();
+        LayoutInflater inflator = LayoutInflater.from(this);
+
+        final View dialogView = inflator.inflate(R.layout.save_images_dialog, null);
+        final EditText filenameView = (EditText) dialogView.findViewById(R.id.save_images_filename);
+        filenameView.setText(midifile.getFileName().replace("_", " "));
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.save_images_str);
+        builder.setView(dialogView);
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface builder, int whichButton) {
+                saveAsImages(filenameView.getText().toString());
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface builder, int whichButton) {
+            }
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
 
@@ -220,8 +234,7 @@ public class SheetMusicActivity extends Activity {
         String filename = name;
         try {
             filename = URLEncoder.encode(name, "utf-8");
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
         }
         if (!options.scrollVert) {
             options.scrollVert = true;
@@ -230,7 +243,7 @@ public class SheetMusicActivity extends Activity {
         try {
             int numpages = sheet.GetTotalPages();
             for (int page = 1; page <= numpages; page++) {
-                Bitmap image= Bitmap.createBitmap(SheetMusic.PageWidth + 40, SheetMusic.PageHeight + 40, Bitmap.Config.ARGB_8888);
+                Bitmap image = Bitmap.createBitmap(SheetMusic.PageWidth + 40, SheetMusic.PageHeight + 40, Bitmap.Config.ARGB_8888);
                 Canvas imageCanvas = new Canvas(image);
                 sheet.DrawPage(imageCanvas, page);
                 File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/MidiSheetMusic");
@@ -240,14 +253,13 @@ public class SheetMusicActivity extends Activity {
                 image.compress(Bitmap.CompressFormat.PNG, 0, stream);
                 image = null;
                 stream.close();
-    
+
                 // Inform the media scanner about the file
-                MediaScannerConnection.scanFile(this, new String[] { file.toString() }, null, null);
+                MediaScannerConnection.scanFile(this, new String[]{file.toString()}, null, null);
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setMessage("Error saving image to file " + Environment.DIRECTORY_PICTURES + "/MidiSheetMusic/" + filename  + ".png");
+            builder.setMessage("Error saving image to file " + Environment.DIRECTORY_PICTURES + "/MidiSheetMusic/" + filename + ".png");
             builder.setCancelable(false);
             builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
@@ -259,30 +271,33 @@ public class SheetMusicActivity extends Activity {
     }
 
 
-    /** Show the HTML help screen. */
+    /**
+     * Show the HTML help screen.
+     */
     private void showHelp() {
         Intent intent = new Intent(this, HelpActivity.class);
         startActivity(intent);
     }
 
-    /** This is the callback when the SettingsActivity is finished.
-     *  Get the modified MidiOptions (passed as a parameter in the Intent).
-     *  Save the MidiOptions.  The key is the CRC checksum of the midi data,
-     *  and the value is a JSON dump of the MidiOptions.
-     *  Finally, re-create the SheetMusic View with the new options.
+    /**
+     * This is the callback when the SettingsActivity is finished.
+     * Get the modified MidiOptions (passed as a parameter in the Intent).
+     * Save the MidiOptions.  The key is the CRC checksum of the midi data,
+     * and the value is a JSON dump of the MidiOptions.
+     * Finally, re-create the SheetMusic View with the new options.
      */
     @Override
-    protected void onActivityResult (int requestCode, int resultCode, Intent intent) {
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
         if (requestCode != settingsRequestCode) {
             return;
         }
-        options = (MidiOptions) 
-            intent.getSerializableExtra(SettingsActivity.settingsID);
+        options = (MidiOptions)
+                intent.getSerializableExtra(SettingsActivity.settingsID);
 
         // Check whether the default instruments have changed.
         for (int i = 0; i < options.instruments.length; i++) {
-            if (options.instruments[i] !=  
-                midifile.getTracks().get(i).getInstrument()) {
+            if (options.instruments[i] !=
+                    midifile.getTracks().get(i).getInstrument()) {
                 options.useDefaultInstruments = false;
             }
         }
@@ -302,7 +317,9 @@ public class SheetMusicActivity extends Activity {
         createSheetMusic(options);
     }
 
-    /** When this activity resumes, redraw all the views */
+    /**
+     * When this activity resumes, redraw all the views
+     */
     @Override
     protected void onResume() {
         super.onResume();
@@ -315,13 +332,15 @@ public class SheetMusicActivity extends Activity {
         layout.requestLayout();
     }
 
-    /** When this activity pauses, stop the music */
+    /**
+     * When this activity pauses, stop the music
+     */
     @Override
     protected void onPause() {
         if (player != null) {
             player.Pause();
         }
         super.onPause();
-    } 
+    }
 }
 

@@ -10,7 +10,7 @@
  *  GNU General Public License for more details.
  */
 
-package com.midisheetmusic;
+package com.abitbol.ophir.iplay.midiViewer;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -20,7 +20,10 @@ import android.content.*;
 import android.content.res.*;
 import android.graphics.*;
 
-/** @class MidiSheetMusicActivity
+import com.abitbol.ophir.iplay.R;
+
+/**
+ * @class MidiSheetMusicActivity
  * This is the launch activity for MidiSheetMusic.
  * It simply displays the splash screen, and a button to choose a song.
  */
@@ -41,20 +44,26 @@ public class MidiSheetMusicActivity extends Activity {
         );
     }
 
-    /** Start the ChooseSongActivity when the "Choose Song" button is clicked */
+    /**
+     * Start the ChooseSongActivity when the "Choose Song" button is clicked
+     */
     private void chooseSong() {
         Intent intent = new Intent(this, ChooseSongActivity.class);
         startActivity(intent);
     }
 
-    /** Load all the resource images */
+    /**
+     * Load all the resource images
+     */
     private void loadImages() {
         ClefSymbol.LoadImages(this);
         TimeSigSymbol.LoadImages(this);
         MidiPlayer.LoadImages(this);
     }
 
-    /** Always use landscape mode for this activity. */
+    /**
+     * Always use landscape mode for this activity.
+     */
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);

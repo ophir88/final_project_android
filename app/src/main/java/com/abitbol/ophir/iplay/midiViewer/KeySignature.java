@@ -10,25 +10,27 @@
  *  GNU General Public License for more details.
  */
 
-package com.midisheetmusic;
+package com.abitbol.ophir.iplay.midiViewer;
 
 
-/** @class KeySignature
+/**
+ * @class KeySignature
  * The KeySignature class represents a key signature, like G Major
  * or B-flat Major.  For sheet music, we only care about the number
  * of sharps or flats in the key signature, not whether it is major
  * or minor.
- *
+ * <p/>
  * The main operations of this class are:
  * - Guessing the key signature, given the notes in a song.
  * - Generating the accidental symbols for the key signature.
  * - Determining whether a particular note requires an accidental
- *   or not.
- *
+ * or not.
  */
 
 public class KeySignature {
-    /** The number of sharps in each key signature */
+    /**
+     * The number of sharps in each key signature
+     */
     public static final int C = 0;
     public static final int G = 1;
     public static final int D = 2;
@@ -36,7 +38,9 @@ public class KeySignature {
     public static final int E = 4;
     public static final int B = 5;
 
-    /** The number of flats in each key signature */
+    /**
+     * The number of flats in each key signature
+     */
     public static final int F = 1;
     public static final int Bflat = 2;
     public static final int Eflat = 3;
@@ -44,35 +48,47 @@ public class KeySignature {
     public static final int Dflat = 5;
     public static final int Gflat = 6;
 
-    /** The two arrays below are key maps.  They take a major key
+    /**
+     * The two arrays below are key maps.  They take a major key
      * (like G major, B-flat major) and a note in the scale, and
      * return the Accidental required to display that note in the
      * given key.  In a nutshel, the map is
-     *
-     *   map[Key][NoteScale] -> Accidental
+     * <p/>
+     * map[Key][NoteScale] -> Accidental
      */
     private static Accid[][] sharpkeys;
     private static Accid[][] flatkeys;
 
-    private int num_flats;   /** The number of sharps in the key, 0 thru 6 */
+    private int num_flats;
+    /**
+     * The number of sharps in the key, 0 thru 6
+     */
     private int num_sharps;  /** The number of flats in the key, 0 thru 6 */
 
-    /** The accidental symbols that denote this key, in a treble clef */
+    /**
+     * The accidental symbols that denote this key, in a treble clef
+     */
     private AccidSymbol[] treble;
 
-    /** The accidental symbols that denote this key, in a bass clef */
+    /**
+     * The accidental symbols that denote this key, in a bass clef
+     */
     private AccidSymbol[] bass;
 
-    /** The key map for this key signature:
-     *   keymap[notenumber] -> Accidental
+    /**
+     * The key map for this key signature:
+     * keymap[notenumber] -> Accidental
      */
     private Accid[] keymap;
 
-    /** The measure used in the previous call to GetAccidental() */
-    private int prevmeasure; 
+    /**
+     * The measure used in the previous call to GetAccidental()
+     */
+    private int prevmeasure;
 
 
-    /** Create new key signature, with the given number of
+    /**
+     * Create new key signature, with the given number of
      * sharps and flats.  One of the two must be 0, you can't
      * have both sharps and flats in the key signature.
      */
@@ -89,36 +105,63 @@ public class KeySignature {
         CreateSymbols();
     }
 
-    /** Create new key signature, with the given notescale.
+    /**
+     * Create new key signature, with the given notescale.
      */
     public KeySignature(int notescale) {
         num_sharps = num_flats = 0;
         switch (notescale) {
-            case NoteScale.A:     num_sharps = 3; break;
-            case NoteScale.Bflat: num_flats = 2;  break;
-            case NoteScale.B:     num_sharps = 5; break;
-            case NoteScale.C:     break;
-            case NoteScale.Dflat: num_flats = 5;  break;
-            case NoteScale.D:     num_sharps = 2; break;
-            case NoteScale.Eflat: num_flats = 3;  break;
-            case NoteScale.E:     num_sharps = 4; break;
-            case NoteScale.F:     num_flats = 1;  break;
-            case NoteScale.Gflat: num_flats = 6;  break;
-            case NoteScale.G:     num_sharps = 1; break;
-            case NoteScale.Aflat: num_flats = 4;  break;
-            default:              throw new IllegalArgumentException(); 
+            case NoteScale.A:
+                num_sharps = 3;
+                break;
+            case NoteScale.Bflat:
+                num_flats = 2;
+                break;
+            case NoteScale.B:
+                num_sharps = 5;
+                break;
+            case NoteScale.C:
+                break;
+            case NoteScale.Dflat:
+                num_flats = 5;
+                break;
+            case NoteScale.D:
+                num_sharps = 2;
+                break;
+            case NoteScale.Eflat:
+                num_flats = 3;
+                break;
+            case NoteScale.E:
+                num_sharps = 4;
+                break;
+            case NoteScale.F:
+                num_flats = 1;
+                break;
+            case NoteScale.Gflat:
+                num_flats = 6;
+                break;
+            case NoteScale.G:
+                num_sharps = 1;
+                break;
+            case NoteScale.Aflat:
+                num_flats = 4;
+                break;
+            default:
+                throw new IllegalArgumentException();
         }
-        
+
         CreateAccidentalMaps();
         keymap = new Accid[129];
         ResetKeyMap();
         CreateSymbols();
     }
 
-    /** Iniitalize the sharpkeys and flatkeys maps */
+    /**
+     * Iniitalize the sharpkeys and flatkeys maps
+     */
     private static void CreateAccidentalMaps() {
         if (sharpkeys != null)
-            return; 
+            return;
 
         Accid[] map;
         sharpkeys = new Accid[8][];
@@ -130,197 +173,197 @@ public class KeySignature {
         }
 
         map = sharpkeys[C];
-        map[ NoteScale.A ]      = Accid.None;
-        map[ NoteScale.Asharp ] = Accid.Flat;
-        map[ NoteScale.B ]      = Accid.None;
-        map[ NoteScale.C ]      = Accid.None;
-        map[ NoteScale.Csharp ] = Accid.Sharp;
-        map[ NoteScale.D ]      = Accid.None;
-        map[ NoteScale.Dsharp ] = Accid.Sharp;
-        map[ NoteScale.E ]      = Accid.None;
-        map[ NoteScale.F ]      = Accid.None;
-        map[ NoteScale.Fsharp ] = Accid.Sharp;
-        map[ NoteScale.G ]      = Accid.None;
-        map[ NoteScale.Gsharp ] = Accid.Sharp;
+        map[NoteScale.A] = Accid.None;
+        map[NoteScale.Asharp] = Accid.Flat;
+        map[NoteScale.B] = Accid.None;
+        map[NoteScale.C] = Accid.None;
+        map[NoteScale.Csharp] = Accid.Sharp;
+        map[NoteScale.D] = Accid.None;
+        map[NoteScale.Dsharp] = Accid.Sharp;
+        map[NoteScale.E] = Accid.None;
+        map[NoteScale.F] = Accid.None;
+        map[NoteScale.Fsharp] = Accid.Sharp;
+        map[NoteScale.G] = Accid.None;
+        map[NoteScale.Gsharp] = Accid.Sharp;
 
         map = sharpkeys[G];
-        map[ NoteScale.A ]      = Accid.None;
-        map[ NoteScale.Asharp ] = Accid.Flat;
-        map[ NoteScale.B ]      = Accid.None;
-        map[ NoteScale.C ]      = Accid.None;
-        map[ NoteScale.Csharp ] = Accid.Sharp;
-        map[ NoteScale.D ]      = Accid.None;
-        map[ NoteScale.Dsharp ] = Accid.Sharp;
-        map[ NoteScale.E ]      = Accid.None;
-        map[ NoteScale.F ]      = Accid.Natural;
-        map[ NoteScale.Fsharp ] = Accid.None;
-        map[ NoteScale.G ]      = Accid.None;
-        map[ NoteScale.Gsharp ] = Accid.Sharp;
+        map[NoteScale.A] = Accid.None;
+        map[NoteScale.Asharp] = Accid.Flat;
+        map[NoteScale.B] = Accid.None;
+        map[NoteScale.C] = Accid.None;
+        map[NoteScale.Csharp] = Accid.Sharp;
+        map[NoteScale.D] = Accid.None;
+        map[NoteScale.Dsharp] = Accid.Sharp;
+        map[NoteScale.E] = Accid.None;
+        map[NoteScale.F] = Accid.Natural;
+        map[NoteScale.Fsharp] = Accid.None;
+        map[NoteScale.G] = Accid.None;
+        map[NoteScale.Gsharp] = Accid.Sharp;
 
         map = sharpkeys[D];
-        map[ NoteScale.A ]      = Accid.None;
-        map[ NoteScale.Asharp ] = Accid.Flat;
-        map[ NoteScale.B ]      = Accid.None;
-        map[ NoteScale.C ]      = Accid.Natural;
-        map[ NoteScale.Csharp ] = Accid.None;
-        map[ NoteScale.D ]      = Accid.None;
-        map[ NoteScale.Dsharp ] = Accid.Sharp;
-        map[ NoteScale.E ]      = Accid.None;
-        map[ NoteScale.F ]      = Accid.Natural;
-        map[ NoteScale.Fsharp ] = Accid.None;
-        map[ NoteScale.G ]      = Accid.None;
-        map[ NoteScale.Gsharp ] = Accid.Sharp;
+        map[NoteScale.A] = Accid.None;
+        map[NoteScale.Asharp] = Accid.Flat;
+        map[NoteScale.B] = Accid.None;
+        map[NoteScale.C] = Accid.Natural;
+        map[NoteScale.Csharp] = Accid.None;
+        map[NoteScale.D] = Accid.None;
+        map[NoteScale.Dsharp] = Accid.Sharp;
+        map[NoteScale.E] = Accid.None;
+        map[NoteScale.F] = Accid.Natural;
+        map[NoteScale.Fsharp] = Accid.None;
+        map[NoteScale.G] = Accid.None;
+        map[NoteScale.Gsharp] = Accid.Sharp;
 
         map = sharpkeys[A];
-        map[ NoteScale.A ]      = Accid.None;
-        map[ NoteScale.Asharp ] = Accid.Flat;
-        map[ NoteScale.B ]      = Accid.None;
-        map[ NoteScale.C ]      = Accid.Natural;
-        map[ NoteScale.Csharp ] = Accid.None;
-        map[ NoteScale.D ]      = Accid.None;
-        map[ NoteScale.Dsharp ] = Accid.Sharp;
-        map[ NoteScale.E ]      = Accid.None;
-        map[ NoteScale.F ]      = Accid.Natural;
-        map[ NoteScale.Fsharp ] = Accid.None;
-        map[ NoteScale.G ]      = Accid.Natural;
-        map[ NoteScale.Gsharp ] = Accid.None;
+        map[NoteScale.A] = Accid.None;
+        map[NoteScale.Asharp] = Accid.Flat;
+        map[NoteScale.B] = Accid.None;
+        map[NoteScale.C] = Accid.Natural;
+        map[NoteScale.Csharp] = Accid.None;
+        map[NoteScale.D] = Accid.None;
+        map[NoteScale.Dsharp] = Accid.Sharp;
+        map[NoteScale.E] = Accid.None;
+        map[NoteScale.F] = Accid.Natural;
+        map[NoteScale.Fsharp] = Accid.None;
+        map[NoteScale.G] = Accid.Natural;
+        map[NoteScale.Gsharp] = Accid.None;
 
         map = sharpkeys[E];
-        map[ NoteScale.A ]      = Accid.None;
-        map[ NoteScale.Asharp ] = Accid.Flat;
-        map[ NoteScale.B ]      = Accid.None;
-        map[ NoteScale.C ]      = Accid.Natural;
-        map[ NoteScale.Csharp ] = Accid.None;
-        map[ NoteScale.D ]      = Accid.Natural;
-        map[ NoteScale.Dsharp ] = Accid.None;
-        map[ NoteScale.E ]      = Accid.None;
-        map[ NoteScale.F ]      = Accid.Natural;
-        map[ NoteScale.Fsharp ] = Accid.None;
-        map[ NoteScale.G ]      = Accid.Natural;
-        map[ NoteScale.Gsharp ] = Accid.None;
+        map[NoteScale.A] = Accid.None;
+        map[NoteScale.Asharp] = Accid.Flat;
+        map[NoteScale.B] = Accid.None;
+        map[NoteScale.C] = Accid.Natural;
+        map[NoteScale.Csharp] = Accid.None;
+        map[NoteScale.D] = Accid.Natural;
+        map[NoteScale.Dsharp] = Accid.None;
+        map[NoteScale.E] = Accid.None;
+        map[NoteScale.F] = Accid.Natural;
+        map[NoteScale.Fsharp] = Accid.None;
+        map[NoteScale.G] = Accid.Natural;
+        map[NoteScale.Gsharp] = Accid.None;
 
         map = sharpkeys[B];
-        map[ NoteScale.A ]      = Accid.Natural;
-        map[ NoteScale.Asharp ] = Accid.None;
-        map[ NoteScale.B ]      = Accid.None;
-        map[ NoteScale.C ]      = Accid.Natural;
-        map[ NoteScale.Csharp ] = Accid.None;
-        map[ NoteScale.D ]      = Accid.Natural;
-        map[ NoteScale.Dsharp ] = Accid.None;
-        map[ NoteScale.E ]      = Accid.None;
-        map[ NoteScale.F ]      = Accid.Natural;
-        map[ NoteScale.Fsharp ] = Accid.None;
-        map[ NoteScale.G ]      = Accid.Natural;
-        map[ NoteScale.Gsharp ] = Accid.None;
+        map[NoteScale.A] = Accid.Natural;
+        map[NoteScale.Asharp] = Accid.None;
+        map[NoteScale.B] = Accid.None;
+        map[NoteScale.C] = Accid.Natural;
+        map[NoteScale.Csharp] = Accid.None;
+        map[NoteScale.D] = Accid.Natural;
+        map[NoteScale.Dsharp] = Accid.None;
+        map[NoteScale.E] = Accid.None;
+        map[NoteScale.F] = Accid.Natural;
+        map[NoteScale.Fsharp] = Accid.None;
+        map[NoteScale.G] = Accid.Natural;
+        map[NoteScale.Gsharp] = Accid.None;
 
         /* Flat keys */
         map = flatkeys[C];
-        map[ NoteScale.A ]      = Accid.None;
-        map[ NoteScale.Asharp ] = Accid.Flat;
-        map[ NoteScale.B ]      = Accid.None;
-        map[ NoteScale.C ]      = Accid.None;
-        map[ NoteScale.Csharp ] = Accid.Sharp;
-        map[ NoteScale.D ]      = Accid.None;
-        map[ NoteScale.Dsharp ] = Accid.Sharp;
-        map[ NoteScale.E ]      = Accid.None;
-        map[ NoteScale.F ]      = Accid.None;
-        map[ NoteScale.Fsharp ] = Accid.Sharp;
-        map[ NoteScale.G ]      = Accid.None;
-        map[ NoteScale.Gsharp ] = Accid.Sharp;
+        map[NoteScale.A] = Accid.None;
+        map[NoteScale.Asharp] = Accid.Flat;
+        map[NoteScale.B] = Accid.None;
+        map[NoteScale.C] = Accid.None;
+        map[NoteScale.Csharp] = Accid.Sharp;
+        map[NoteScale.D] = Accid.None;
+        map[NoteScale.Dsharp] = Accid.Sharp;
+        map[NoteScale.E] = Accid.None;
+        map[NoteScale.F] = Accid.None;
+        map[NoteScale.Fsharp] = Accid.Sharp;
+        map[NoteScale.G] = Accid.None;
+        map[NoteScale.Gsharp] = Accid.Sharp;
 
         map = flatkeys[F];
-        map[ NoteScale.A ]      = Accid.None;
-        map[ NoteScale.Bflat ]  = Accid.None;
-        map[ NoteScale.B ]      = Accid.Natural;
-        map[ NoteScale.C ]      = Accid.None;
-        map[ NoteScale.Csharp ] = Accid.Sharp;
-        map[ NoteScale.D ]      = Accid.None;
-        map[ NoteScale.Eflat ]  = Accid.Flat;
-        map[ NoteScale.E ]      = Accid.None;
-        map[ NoteScale.F ]      = Accid.None;
-        map[ NoteScale.Fsharp ] = Accid.Sharp;
-        map[ NoteScale.G ]      = Accid.None;
-        map[ NoteScale.Aflat ]  = Accid.Flat;
+        map[NoteScale.A] = Accid.None;
+        map[NoteScale.Bflat] = Accid.None;
+        map[NoteScale.B] = Accid.Natural;
+        map[NoteScale.C] = Accid.None;
+        map[NoteScale.Csharp] = Accid.Sharp;
+        map[NoteScale.D] = Accid.None;
+        map[NoteScale.Eflat] = Accid.Flat;
+        map[NoteScale.E] = Accid.None;
+        map[NoteScale.F] = Accid.None;
+        map[NoteScale.Fsharp] = Accid.Sharp;
+        map[NoteScale.G] = Accid.None;
+        map[NoteScale.Aflat] = Accid.Flat;
 
         map = flatkeys[Bflat];
-        map[ NoteScale.A ]      = Accid.None;
-        map[ NoteScale.Bflat ]  = Accid.None;
-        map[ NoteScale.B ]      = Accid.Natural;
-        map[ NoteScale.C ]      = Accid.None;
-        map[ NoteScale.Csharp ] = Accid.Sharp;
-        map[ NoteScale.D ]      = Accid.None;
-        map[ NoteScale.Eflat ]  = Accid.None;
-        map[ NoteScale.E ]      = Accid.Natural;
-        map[ NoteScale.F ]      = Accid.None;
-        map[ NoteScale.Fsharp ] = Accid.Sharp;
-        map[ NoteScale.G ]      = Accid.None;
-        map[ NoteScale.Aflat ]  = Accid.Flat;
+        map[NoteScale.A] = Accid.None;
+        map[NoteScale.Bflat] = Accid.None;
+        map[NoteScale.B] = Accid.Natural;
+        map[NoteScale.C] = Accid.None;
+        map[NoteScale.Csharp] = Accid.Sharp;
+        map[NoteScale.D] = Accid.None;
+        map[NoteScale.Eflat] = Accid.None;
+        map[NoteScale.E] = Accid.Natural;
+        map[NoteScale.F] = Accid.None;
+        map[NoteScale.Fsharp] = Accid.Sharp;
+        map[NoteScale.G] = Accid.None;
+        map[NoteScale.Aflat] = Accid.Flat;
 
         map = flatkeys[Eflat];
-        map[ NoteScale.A ]      = Accid.Natural;
-        map[ NoteScale.Bflat ]  = Accid.None;
-        map[ NoteScale.B ]      = Accid.Natural;
-        map[ NoteScale.C ]      = Accid.None;
-        map[ NoteScale.Dflat ]  = Accid.Flat;
-        map[ NoteScale.D ]      = Accid.None;
-        map[ NoteScale.Eflat ]  = Accid.None;
-        map[ NoteScale.E ]      = Accid.Natural;
-        map[ NoteScale.F ]      = Accid.None;
-        map[ NoteScale.Fsharp ] = Accid.Sharp;
-        map[ NoteScale.G ]      = Accid.None;
-        map[ NoteScale.Aflat ]  = Accid.None;
+        map[NoteScale.A] = Accid.Natural;
+        map[NoteScale.Bflat] = Accid.None;
+        map[NoteScale.B] = Accid.Natural;
+        map[NoteScale.C] = Accid.None;
+        map[NoteScale.Dflat] = Accid.Flat;
+        map[NoteScale.D] = Accid.None;
+        map[NoteScale.Eflat] = Accid.None;
+        map[NoteScale.E] = Accid.Natural;
+        map[NoteScale.F] = Accid.None;
+        map[NoteScale.Fsharp] = Accid.Sharp;
+        map[NoteScale.G] = Accid.None;
+        map[NoteScale.Aflat] = Accid.None;
 
         map = flatkeys[Aflat];
-        map[ NoteScale.A ]      = Accid.Natural;
-        map[ NoteScale.Bflat ]  = Accid.None;
-        map[ NoteScale.B ]      = Accid.Natural;
-        map[ NoteScale.C ]      = Accid.None;
-        map[ NoteScale.Dflat ]  = Accid.None;
-        map[ NoteScale.D ]      = Accid.Natural;
-        map[ NoteScale.Eflat ]  = Accid.None;
-        map[ NoteScale.E ]      = Accid.Natural;
-        map[ NoteScale.F ]      = Accid.None;
-        map[ NoteScale.Fsharp ] = Accid.Sharp;
-        map[ NoteScale.G ]      = Accid.None;
-        map[ NoteScale.Aflat ]  = Accid.None;
+        map[NoteScale.A] = Accid.Natural;
+        map[NoteScale.Bflat] = Accid.None;
+        map[NoteScale.B] = Accid.Natural;
+        map[NoteScale.C] = Accid.None;
+        map[NoteScale.Dflat] = Accid.None;
+        map[NoteScale.D] = Accid.Natural;
+        map[NoteScale.Eflat] = Accid.None;
+        map[NoteScale.E] = Accid.Natural;
+        map[NoteScale.F] = Accid.None;
+        map[NoteScale.Fsharp] = Accid.Sharp;
+        map[NoteScale.G] = Accid.None;
+        map[NoteScale.Aflat] = Accid.None;
 
         map = flatkeys[Dflat];
-        map[ NoteScale.A ]      = Accid.Natural;
-        map[ NoteScale.Bflat ]  = Accid.None;
-        map[ NoteScale.B ]      = Accid.Natural;
-        map[ NoteScale.C ]      = Accid.None;
-        map[ NoteScale.Dflat ]  = Accid.None;
-        map[ NoteScale.D ]      = Accid.Natural;
-        map[ NoteScale.Eflat ]  = Accid.None;
-        map[ NoteScale.E ]      = Accid.Natural;
-        map[ NoteScale.F ]      = Accid.None;
-        map[ NoteScale.Gflat ]  = Accid.None;
-        map[ NoteScale.G ]      = Accid.Natural;
-        map[ NoteScale.Aflat ]  = Accid.None;
+        map[NoteScale.A] = Accid.Natural;
+        map[NoteScale.Bflat] = Accid.None;
+        map[NoteScale.B] = Accid.Natural;
+        map[NoteScale.C] = Accid.None;
+        map[NoteScale.Dflat] = Accid.None;
+        map[NoteScale.D] = Accid.Natural;
+        map[NoteScale.Eflat] = Accid.None;
+        map[NoteScale.E] = Accid.Natural;
+        map[NoteScale.F] = Accid.None;
+        map[NoteScale.Gflat] = Accid.None;
+        map[NoteScale.G] = Accid.Natural;
+        map[NoteScale.Aflat] = Accid.None;
 
         map = flatkeys[Gflat];
-        map[ NoteScale.A ]      = Accid.Natural;
-        map[ NoteScale.Bflat ]  = Accid.None;
-        map[ NoteScale.B ]      = Accid.None;
-        map[ NoteScale.C ]      = Accid.Natural;
-        map[ NoteScale.Dflat ]  = Accid.None;
-        map[ NoteScale.D ]      = Accid.Natural;
-        map[ NoteScale.Eflat ]  = Accid.None;
-        map[ NoteScale.E ]      = Accid.Natural;
-        map[ NoteScale.F ]      = Accid.None;
-        map[ NoteScale.Gflat ]  = Accid.None;
-        map[ NoteScale.G ]      = Accid.Natural;
-        map[ NoteScale.Aflat ]  = Accid.None;
+        map[NoteScale.A] = Accid.Natural;
+        map[NoteScale.Bflat] = Accid.None;
+        map[NoteScale.B] = Accid.None;
+        map[NoteScale.C] = Accid.Natural;
+        map[NoteScale.Dflat] = Accid.None;
+        map[NoteScale.D] = Accid.Natural;
+        map[NoteScale.Eflat] = Accid.None;
+        map[NoteScale.E] = Accid.Natural;
+        map[NoteScale.F] = Accid.None;
+        map[NoteScale.Gflat] = Accid.None;
+        map[NoteScale.G] = Accid.Natural;
+        map[NoteScale.Aflat] = Accid.None;
 
 
     }
 
-    /** The keymap tells what accidental symbol is needed for each
-     *  note in the scale.  Reset the keymap to the values of the
-     *  key signature.
+    /**
+     * The keymap tells what accidental symbol is needed for each
+     * note in the scale.  Reset the keymap to the values of the
+     * key signature.
      */
-    private void ResetKeyMap()
-    {
+    private void ResetKeyMap() {
         Accid[] key;
         if (num_flats > 0)
             key = flatkeys[num_flats];
@@ -333,7 +376,8 @@ public class KeySignature {
     }
 
 
-    /** Create the Accidental symbols for this key, for
+    /**
+     * Create the Accidental symbols for this key, for
      * the treble and bass clefs.
      */
     private void CreateSymbols() {
@@ -348,40 +392,39 @@ public class KeySignature {
         WhiteNote[] treblenotes = null;
         WhiteNote[] bassnotes = null;
 
-        if (num_sharps > 0)  {
-            treblenotes = new WhiteNote[] {
-                new WhiteNote(WhiteNote.F, 5),
-                new WhiteNote(WhiteNote.C, 5),
-                new WhiteNote(WhiteNote.G, 5),
-                new WhiteNote(WhiteNote.D, 5),
-                new WhiteNote(WhiteNote.A, 6),
-                new WhiteNote(WhiteNote.E, 5)
+        if (num_sharps > 0) {
+            treblenotes = new WhiteNote[]{
+                    new WhiteNote(WhiteNote.F, 5),
+                    new WhiteNote(WhiteNote.C, 5),
+                    new WhiteNote(WhiteNote.G, 5),
+                    new WhiteNote(WhiteNote.D, 5),
+                    new WhiteNote(WhiteNote.A, 6),
+                    new WhiteNote(WhiteNote.E, 5)
             };
-            bassnotes = new WhiteNote[] {
-                new WhiteNote(WhiteNote.F, 3),
-                new WhiteNote(WhiteNote.C, 3),
-                new WhiteNote(WhiteNote.G, 3),
-                new WhiteNote(WhiteNote.D, 3),
-                new WhiteNote(WhiteNote.A, 4),
-                new WhiteNote(WhiteNote.E, 3)
+            bassnotes = new WhiteNote[]{
+                    new WhiteNote(WhiteNote.F, 3),
+                    new WhiteNote(WhiteNote.C, 3),
+                    new WhiteNote(WhiteNote.G, 3),
+                    new WhiteNote(WhiteNote.D, 3),
+                    new WhiteNote(WhiteNote.A, 4),
+                    new WhiteNote(WhiteNote.E, 3)
             };
-        }
-        else if (num_flats > 0) {
-            treblenotes = new WhiteNote[] {
-                new WhiteNote(WhiteNote.B, 5),
-                new WhiteNote(WhiteNote.E, 5),
-                new WhiteNote(WhiteNote.A, 5),
-                new WhiteNote(WhiteNote.D, 5),
-                new WhiteNote(WhiteNote.G, 4),
-                new WhiteNote(WhiteNote.C, 5)
+        } else if (num_flats > 0) {
+            treblenotes = new WhiteNote[]{
+                    new WhiteNote(WhiteNote.B, 5),
+                    new WhiteNote(WhiteNote.E, 5),
+                    new WhiteNote(WhiteNote.A, 5),
+                    new WhiteNote(WhiteNote.D, 5),
+                    new WhiteNote(WhiteNote.G, 4),
+                    new WhiteNote(WhiteNote.C, 5)
             };
-            bassnotes = new WhiteNote[] {
-                new WhiteNote(WhiteNote.B, 3),
-                new WhiteNote(WhiteNote.E, 3),
-                new WhiteNote(WhiteNote.A, 3),
-                new WhiteNote(WhiteNote.D, 3),
-                new WhiteNote(WhiteNote.G, 2),
-                new WhiteNote(WhiteNote.C, 3)
+            bassnotes = new WhiteNote[]{
+                    new WhiteNote(WhiteNote.B, 3),
+                    new WhiteNote(WhiteNote.E, 3),
+                    new WhiteNote(WhiteNote.A, 3),
+                    new WhiteNote(WhiteNote.D, 3),
+                    new WhiteNote(WhiteNote.G, 2),
+                    new WhiteNote(WhiteNote.C, 3)
             };
         }
 
@@ -397,7 +440,8 @@ public class KeySignature {
         }
     }
 
-    /** Return the Accidental symbols for displaying this key signature
+    /**
+     * Return the Accidental symbols for displaying this key signature
      * for the given clef.
      */
     public AccidSymbol[] GetSymbols(Clef clef) {
@@ -407,9 +451,10 @@ public class KeySignature {
             return bass;
     }
 
-    /** Given a midi note number, return the accidental (if any) 
+    /**
+     * Given a midi note number, return the accidental (if any)
      * that should be used when displaying the note in this key signature.
-     *
+     * <p/>
      * The current measure is also required.  Once we return an
      * accidental for a measure, the accidental remains for the
      * rest of the measure. So we must update the current keymap
@@ -423,43 +468,37 @@ public class KeySignature {
         }
         if (notenumber <= 1 || notenumber >= 127) {
             return Accid.None;
-        } 
+        }
 
         Accid result = keymap[notenumber];
         if (result == Accid.Sharp) {
             keymap[notenumber] = Accid.None;
-            keymap[notenumber-1] = Accid.Natural;
-        }
-        else if (result == Accid.Flat) {
+            keymap[notenumber - 1] = Accid.Natural;
+        } else if (result == Accid.Flat) {
             keymap[notenumber] = Accid.None;
-            keymap[notenumber+1] = Accid.Natural;
-        }
-        else if (result == Accid.Natural) {
+            keymap[notenumber + 1] = Accid.Natural;
+        } else if (result == Accid.Natural) {
             keymap[notenumber] = Accid.None;
-            int nextkey = NoteScale.FromNumber(notenumber+1);
-            int prevkey = NoteScale.FromNumber(notenumber-1);
+            int nextkey = NoteScale.FromNumber(notenumber + 1);
+            int prevkey = NoteScale.FromNumber(notenumber - 1);
 
             /* If we insert a natural, then either:
              * - the next key must go back to sharp,
              * - the previous key must go back to flat.
              */
-            if (keymap[notenumber-1] == Accid.None && keymap[notenumber+1] == Accid.None &&
-                NoteScale.IsBlackKey(nextkey) && NoteScale.IsBlackKey(prevkey) ) {
+            if (keymap[notenumber - 1] == Accid.None && keymap[notenumber + 1] == Accid.None &&
+                    NoteScale.IsBlackKey(nextkey) && NoteScale.IsBlackKey(prevkey)) {
 
                 if (num_flats == 0) {
-                    keymap[notenumber+1] = Accid.Sharp;
+                    keymap[notenumber + 1] = Accid.Sharp;
+                } else {
+                    keymap[notenumber - 1] = Accid.Flat;
                 }
-                else {
-                    keymap[notenumber-1] = Accid.Flat;
-                }
-            }
-            else if (keymap[notenumber-1] == Accid.None && NoteScale.IsBlackKey(prevkey)) {
-                keymap[notenumber-1] = Accid.Flat;
-            }
-            else if (keymap[notenumber+1] == Accid.None && NoteScale.IsBlackKey(nextkey)) {
-                keymap[notenumber+1] = Accid.Sharp;
-            }
-            else {
+            } else if (keymap[notenumber - 1] == Accid.None && NoteScale.IsBlackKey(prevkey)) {
+                keymap[notenumber - 1] = Accid.Flat;
+            } else if (keymap[notenumber + 1] == Accid.None && NoteScale.IsBlackKey(nextkey)) {
+                keymap[notenumber + 1] = Accid.Sharp;
+            } else {
                 /* Shouldn't get here */
             }
         }
@@ -467,7 +506,8 @@ public class KeySignature {
     }
 
 
-    /** Given a midi note number, return the white note (the
+    /**
+     * Given a midi note number, return the white note (the
      * non-sharp/non-flat note) that should be used when displaying
      * this note in this key signature.  This should be called
      * before calling GetAccidental().
@@ -477,38 +517,35 @@ public class KeySignature {
         int octave = (notenumber + 3) / 12 - 1;
         int letter = 0;
 
-        int[] whole_sharps = { 
-            WhiteNote.A, WhiteNote.A, 
-            WhiteNote.B, 
-            WhiteNote.C, WhiteNote.C,
-            WhiteNote.D, WhiteNote.D,
-            WhiteNote.E,
-            WhiteNote.F, WhiteNote.F,
-            WhiteNote.G, WhiteNote.G
+        int[] whole_sharps = {
+                WhiteNote.A, WhiteNote.A,
+                WhiteNote.B,
+                WhiteNote.C, WhiteNote.C,
+                WhiteNote.D, WhiteNote.D,
+                WhiteNote.E,
+                WhiteNote.F, WhiteNote.F,
+                WhiteNote.G, WhiteNote.G
         };
 
         int[] whole_flats = {
-            WhiteNote.A, 
-            WhiteNote.B, WhiteNote.B,
-            WhiteNote.C,
-            WhiteNote.D, WhiteNote.D,
-            WhiteNote.E, WhiteNote.E,
-            WhiteNote.F,
-            WhiteNote.G, WhiteNote.G,
-            WhiteNote.A
+                WhiteNote.A,
+                WhiteNote.B, WhiteNote.B,
+                WhiteNote.C,
+                WhiteNote.D, WhiteNote.D,
+                WhiteNote.E, WhiteNote.E,
+                WhiteNote.F,
+                WhiteNote.G, WhiteNote.G,
+                WhiteNote.A
         };
 
         Accid accid = keymap[notenumber];
         if (accid == Accid.Flat) {
             letter = whole_flats[notescale];
-        }
-        else if (accid == Accid.Sharp) {
+        } else if (accid == Accid.Sharp) {
             letter = whole_sharps[notescale];
-        }
-        else if (accid == Accid.Natural) {
+        } else if (accid == Accid.Natural) {
             letter = whole_sharps[notescale];
-        }
-        else if (accid == Accid.None) {
+        } else if (accid == Accid.None) {
             letter = whole_sharps[notescale];
 
             /* If the note number is a sharp/flat, and there's no accidental,
@@ -516,20 +553,17 @@ public class KeySignature {
              * is a natural.
              */
             if (NoteScale.IsBlackKey(notescale)) {
-                if (keymap[notenumber-1] == Accid.Natural && 
-                    keymap[notenumber+1] == Accid.Natural) {
+                if (keymap[notenumber - 1] == Accid.Natural &&
+                        keymap[notenumber + 1] == Accid.Natural) {
 
                     if (num_flats > 0) {
                         letter = whole_flats[notescale];
-                    }
-                    else {
+                    } else {
                         letter = whole_sharps[notescale];
                     }
-                }
-                else if (keymap[notenumber-1] == Accid.Natural) {
+                } else if (keymap[notenumber - 1] == Accid.Natural) {
                     letter = whole_sharps[notescale];
-                }
-                else if (keymap[notenumber+1] == Accid.Natural) {
+                } else if (keymap[notenumber + 1] == Accid.Natural) {
                     letter = whole_flats[notescale];
                 }
             }
@@ -553,7 +587,8 @@ public class KeySignature {
     }
 
 
-    /** Guess the key signature, given the midi note numbers used in
+    /**
+     * Guess the key signature, given the midi note numbers used in
      * the song.
      */
     public static KeySignature Guess(ListInt notes) {
@@ -605,13 +640,14 @@ public class KeySignature {
         }
         if (is_best_sharp) {
             return new KeySignature(bestkey, 0);
-        }
-        else {
+        } else {
             return new KeySignature(0, bestkey);
         }
     }
 
-    /** Return true if this key signature is equal to key signature k */
+    /**
+     * Return true if this key signature is equal to key signature k
+     */
     public boolean equals(KeySignature k) {
         if (k.num_sharps == num_sharps && k.num_flats == num_flats)
             return true;
@@ -622,37 +658,50 @@ public class KeySignature {
     /* Return the Major Key of this Key Signature */
     public int Notescale() {
         int[] flatmajor = {
-            NoteScale.C, NoteScale.F, NoteScale.Bflat, NoteScale.Eflat,
-            NoteScale.Aflat, NoteScale.Dflat, NoteScale.Gflat, NoteScale.B 
+                NoteScale.C, NoteScale.F, NoteScale.Bflat, NoteScale.Eflat,
+                NoteScale.Aflat, NoteScale.Dflat, NoteScale.Gflat, NoteScale.B
         };
 
         int[] sharpmajor = {
-            NoteScale.C, NoteScale.G, NoteScale.D, NoteScale.A, NoteScale.E,
-            NoteScale.B, NoteScale.Fsharp, NoteScale.Csharp, NoteScale.Gsharp,
-            NoteScale.Dsharp
+                NoteScale.C, NoteScale.G, NoteScale.D, NoteScale.A, NoteScale.E,
+                NoteScale.B, NoteScale.Fsharp, NoteScale.Csharp, NoteScale.Gsharp,
+                NoteScale.Dsharp
         };
         if (num_flats > 0)
             return flatmajor[num_flats];
-        else 
+        else
             return sharpmajor[num_sharps];
     }
 
     /* Convert a Major Key into a String */
     public static String KeyToString(int notescale) {
         switch (notescale) {
-            case NoteScale.A:     return "A major" ;
-            case NoteScale.Bflat: return "B-flat major";
-            case NoteScale.B:     return "B major";
-            case NoteScale.C:     return "C major";
-            case NoteScale.Dflat: return "D-flat major";
-            case NoteScale.D:     return "D major";
-            case NoteScale.Eflat: return "E-flat major";
-            case NoteScale.E:     return "E major";
-            case NoteScale.F:     return "F major";
-            case NoteScale.Gflat: return "G-flat major";
-            case NoteScale.G:     return "G major";
-            case NoteScale.Aflat: return "A-flat major";
-            default:              return "";
+            case NoteScale.A:
+                return "A major";
+            case NoteScale.Bflat:
+                return "B-flat major";
+            case NoteScale.B:
+                return "B major";
+            case NoteScale.C:
+                return "C major";
+            case NoteScale.Dflat:
+                return "D-flat major";
+            case NoteScale.D:
+                return "D major";
+            case NoteScale.Eflat:
+                return "E-flat major";
+            case NoteScale.E:
+                return "E major";
+            case NoteScale.F:
+                return "F major";
+            case NoteScale.Gflat:
+                return "G-flat major";
+            case NoteScale.G:
+                return "G major";
+            case NoteScale.Aflat:
+                return "A-flat major";
+            default:
+                return "";
         }
     }
 
@@ -661,7 +710,7 @@ public class KeySignature {
      */
     @Override
     public String toString() {
-        return KeyToString( Notescale() );
+        return KeyToString(Notescale());
     }
 
 

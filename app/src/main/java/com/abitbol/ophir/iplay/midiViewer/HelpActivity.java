@@ -10,14 +10,17 @@
  *  GNU General Public License for more details.
  */
 
-package com.midisheetmusic;
+package com.abitbol.ophir.iplay.midiViewer;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.webkit.*;
 
-/** @class HelpActivity
- *  The HelpActivity displays the help.html file in the assets directory.
+import com.abitbol.ophir.iplay.R;
+
+/**
+ * @class HelpActivity
+ * The HelpActivity displays the help.html file in the assets directory.
  */
 public class HelpActivity extends Activity {
 

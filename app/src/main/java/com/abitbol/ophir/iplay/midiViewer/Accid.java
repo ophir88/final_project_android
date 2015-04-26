@@ -11,9 +11,11 @@
  */
 
 
-package com.midisheetmusic;
+package com.abitbol.ophir.iplay.midiViewer;
 
-/** Accidentals */
+/**
+ * Accidentals
+ */
 public enum Accid {
     None, Sharp, Flat, Natural
 }

@@ -11,10 +11,14 @@
  */
 
 
-package com.midisheetmusic;
+package com.abitbol.ophir.iplay.midiViewer;
 
 
-/** The possible clefs, Treble or Bass */
-public enum Clef { Treble, Bass }
+/**
+ * The possible clefs, Treble or Bass
+ */
+public enum Clef {
+    Treble, Bass
+}
 
 
