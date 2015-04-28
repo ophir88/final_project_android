@@ -26,6 +26,7 @@ import android.os.*;
 import android.media.*;
 
 import com.abitbol.ophir.iplay.*;
+import com.abitbol.ophir.iplay.midiViewer.Countdown;
 import com.abitbol.ophir.iplay.FileUri;
 
 import org.jtransforms.fft.FloatFFT_1D;
@@ -68,6 +69,8 @@ import be.tarsos.dsp.util.fft.FFT;
  */
 public class MidiPlayer extends LinearLayout {
 
+    Countdown countdown;
+    Activity activity;
     volatile boolean keepRun;
 
     /**
@@ -229,13 +232,14 @@ public class MidiPlayer extends LinearLayout {
      */
     public MidiPlayer(Context context) {
         super(context);
+        this.activity = activity;
         threadRunning = false;
         LoadImages(context);
         this.context = context;
         this.midifile = null;
         this.options = null;
         this.sheet = null;
-        playstate = stopped;
+        timeCounter.playstate = stopped;
         startTime = SystemClock.uptimeMillis();
         startPulseTime = 0;
         currentPulseTime = 0;
@@ -243,7 +247,7 @@ public class MidiPlayer extends LinearLayout {
         this.setPadding(0, 0, 0, 0);
         CreateButtons();
 
-        Activity activity = (Activity) context;
+       activity = (Activity) context;
         int screenwidth = activity.getWindowManager().getDefaultDisplay().getWidth();
         int screenheight = activity.getWindowManager().getDefaultDisplay().getHeight();
         Point newsize = MidiPlayer.getPreferredSize(screenwidth, screenheight);
@@ -421,10 +425,10 @@ public class MidiPlayer extends LinearLayout {
         /* If we're paused, and using the same midi file, redraw the
          * highlighted notes.
          */
-        if ((file == midifile && midifile != null && playstate == paused)) {
+        if ((file == midifile && midifile != null &&  timeCounter.playstate == paused)) {
             options = opt;
             sheet = s;
-            Log.d("shading" , "123456789");
+            Log.d("shading", "123456789");
 
             sheet.ShadeNotes((int) currentPulseTime, (int) -1, false);
 
@@ -446,7 +450,7 @@ public class MidiPlayer extends LinearLayout {
      */
     Runnable ReShade = new Runnable() {
         public void run() {
-            if (playstate == paused || playstate == stopped) {
+            if ( timeCounter.playstate == paused ||  timeCounter.playstate == stopped) {
 //                Log.d("shading" , "9999999595988");
 
                 sheet.ShadeNotes((int) currentPulseTime, (int) -10, false);
@@ -565,7 +569,7 @@ public class MidiPlayer extends LinearLayout {
         listenThreadCreator creator = new listenThreadCreator(midifile, new callBack());
         if (midifile == null || sheet == null || numberTracks() == 0) {
             return;
-        } else if (playstate == initStop || playstate == initPause || playstate == playing) {
+        } else if ( timeCounter.playstate == initStop ||  timeCounter.playstate == initPause ||  timeCounter.playstate == playing) {
             return;
         }
         // playstate is stopped or paused
@@ -585,17 +589,26 @@ public class MidiPlayer extends LinearLayout {
 
 
         this.setVisibility(View.GONE);
-        playstate = playing;
-        timeCounter.firstRun = true;
 
-        if(!threadRunning)
-        {
+        if (!threadRunning) {
+            timeCounter.playstate = playing;
+//            playstate = playing;
+
+            timeCounter.firstRun = true;
             sheet.cleanCounters();
             threadRunning = true;
+
+
+
             listThread = creator.getThread();
-            listThread.start();
-        }
-        else{
+            countdown = creator.getCountDown();
+            countdown.start();
+//            listThread.start();
+        } else {
+            countdown.setThreadStart(false);
+            countdown.start();
+//            timeCounter.firstRun = true;
+
             sheet.cleanCounters();
 
         }
@@ -624,7 +637,7 @@ public class MidiPlayer extends LinearLayout {
                 }
                 startPulseTime = currentPulseTime;
                 options.pauseTime = (int) (currentPulseTime - options.shifttime);
-            } else if (playstate == paused) {
+            } else if ( timeCounter.playstate == paused) {
                 startPulseTime = currentPulseTime;
                 options.pauseTime = (int) (currentPulseTime - options.shifttime);
             } else {
@@ -635,7 +648,7 @@ public class MidiPlayer extends LinearLayout {
             }
 
             CreateMidiFile();
-            playstate = playing;
+            timeCounter.playstate = playing;
             PlaySound(tempSoundFile);
             startTime = SystemClock.uptimeMillis();
 
@@ -668,8 +681,8 @@ public class MidiPlayer extends LinearLayout {
 
         if (midifile == null || sheet == null || numberTracks() == 0) {
             return;
-        } else if (playstate == playing) {
-            playstate = initPause;
+        } else if ( timeCounter.playstate == playing) {
+            timeCounter.playstate = initPause;
             return;
         }
     }
@@ -682,15 +695,15 @@ public class MidiPlayer extends LinearLayout {
      */
     void Stop() {
         this.setVisibility(View.VISIBLE);
-        if (midifile == null || sheet == null || playstate == stopped) {
+        if (midifile == null || sheet == null ||  timeCounter.playstate == stopped) {
             return;
         }
 
-        if (playstate == initPause || playstate == initStop || playstate == playing) {
+        if ( timeCounter.playstate == initPause ||  timeCounter.playstate == initStop ||  timeCounter.playstate == playing) {
             /* Wait for timer to finish */
-            playstate = initStop;
+            timeCounter.playstate = initStop;
             DoStop();
-        } else if (playstate == paused) {
+        } else if ( timeCounter.playstate == paused) {
 
             DoStop();
         }
@@ -701,9 +714,9 @@ public class MidiPlayer extends LinearLayout {
      * removing any shading, and clearing the state.
      */
     void DoStop() {
-        playstate = stopped;
+        timeCounter.playstate = stopped;
         timer.removeCallbacks(TimerCallback);
-        Log.d("shading" , "333333333333333");
+        Log.d("shading", "333333333333333");
 
         sheet.ShadeNotes(-10, (int) prevPulseTime, false);
         sheet.ShadeNotes(-10, (int) currentPulseTime, false);
@@ -724,12 +737,12 @@ public class MidiPlayer extends LinearLayout {
      * and re-shade the sheet music.
      */
     void Rewind() {
-        if (midifile == null || sheet == null || playstate != paused) {
+        if (midifile == null || sheet == null ||  timeCounter.playstate != paused) {
             return;
         }
 
         /* Remove any highlighted notes */
-        Log.d("shading" , "44444444444");
+        Log.d("shading", "44444444444");
 
         sheet.ShadeNotes(-10, (int) currentPulseTime, false);
         piano.ShadeNotes(-10, (int) currentPulseTime);
@@ -739,7 +752,7 @@ public class MidiPlayer extends LinearLayout {
         if (currentPulseTime < options.shifttime) {
             currentPulseTime = options.shifttime;
         }
-        Log.d("shading" , "555555555555555555");
+        Log.d("shading", "555555555555555555");
 
         sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, false);
         piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
@@ -756,13 +769,13 @@ public class MidiPlayer extends LinearLayout {
         if (midifile == null || sheet == null) {
             return;
         }
-        if (playstate != paused && playstate != stopped) {
+        if ( timeCounter.playstate != paused &&  timeCounter.playstate != stopped) {
             return;
         }
-        playstate = paused;
+        timeCounter.playstate = paused;
 
         /* Remove any highlighted notes */
-        Log.d("shading" , "6666666666666");
+        Log.d("shading", "6666666666666");
 
         sheet.ShadeNotes(-10, (int) currentPulseTime, false);
         piano.ShadeNotes(-10, (int) currentPulseTime);
@@ -772,40 +785,38 @@ public class MidiPlayer extends LinearLayout {
         if (currentPulseTime > midifile.getTotalPulses()) {
             currentPulseTime -= midifile.getTime().getMeasure();
         }
-        Log.d("shading" , "777777777777777");
+        Log.d("shading", "777777777777777");
 
         sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, false);
         piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
     }
 
 
-    /** The callback for the timer. If the midi is still playing,
-     *  update the currentPulseTime and shade the sheet music.
-     *  If a stop or pause has been initiated (by someone clicking
-     *  the stop or pause button), then stop the timer.
+    /**
+     * The callback for the timer. If the midi is still playing,
+     * update the currentPulseTime and shade the sheet music.
+     * If a stop or pause has been initiated (by someone clicking
+     * the stop or pause button), then stop the timer.
      */
     Runnable TimerCallback = new Runnable() {
         public void run() {
             if (midifile == null || sheet == null) {
-                playstate = stopped;
+                timeCounter.playstate = stopped;
                 return;
-            }
-            else if (playstate == stopped || playstate == paused) {
+            } else if ( timeCounter.playstate == stopped ||  timeCounter.playstate == paused) {
             /* This case should never happen */
                 return;
-            }
-            else if (playstate == initStop) {
+            } else if ( timeCounter.playstate == initStop) {
                 return;
-            }
-            else if (playstate == playing) {
+            } else if ( timeCounter.playstate == playing) {
                 long msec = SystemClock.uptimeMillis() - startTime;
                 prevPulseTime = currentPulseTime;
                 currentPulseTime = startPulseTime + msec * pulsesPerMsec;
 
             /* If we're playing in a loop, stop and restart */
                 if (options.playMeasuresInLoop) {
-                    double nearEndTime = currentPulseTime + pulsesPerMsec*10;
-                    int measure = (int)(nearEndTime / midifile.getTime().getMeasure());
+                    double nearEndTime = currentPulseTime + pulsesPerMsec * 10;
+                    int measure = (int) (nearEndTime / midifile.getTime().getMeasure());
                     if (measure > options.playMeasuresInLoopEnd) {
                         RestartPlayMeasuresInLoop();
                         return;
@@ -819,12 +830,11 @@ public class MidiPlayer extends LinearLayout {
                 }
 //                Log.d("shading" , "8888888888888888888");
 
-                sheet.ShadeNotes((int)currentPulseTime, (int)prevPulseTime, true);
-                piano.ShadeNotes((int)currentPulseTime, (int)prevPulseTime);
+                sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, true);
+                piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
                 timer.postDelayed(TimerCallback, 100);
                 return;
-            }
-            else if (playstate == initPause) {
+            } else if ( timeCounter.playstate == initPause) {
                 long msec = SystemClock.uptimeMillis() - startTime;
                 StopSound();
 
@@ -832,9 +842,9 @@ public class MidiPlayer extends LinearLayout {
                 currentPulseTime = startPulseTime + msec * pulsesPerMsec;
 //                Log.d("shading" , "9999999999999999");
 
-                sheet.ShadeNotes((int)currentPulseTime, (int)prevPulseTime, false);
-                piano.ShadeNotes((int)currentPulseTime, (int)prevPulseTime);
-                playstate = paused;
+                sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, false);
+                piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
+                timeCounter.playstate = paused;
                 timer.postDelayed(ReShade, 1000);
                 return;
             }
@@ -842,66 +852,67 @@ public class MidiPlayer extends LinearLayout {
     };
 
 
-            /**
-             * The "Play Measures in a Loop" feature is enabled, and we've reached
-             * the last measure. Stop the sound, unshade the music, and then
-             * start playing again.
-             */
+    /**
+     * The "Play Measures in a Loop" feature is enabled, and we've reached
+     * the last measure. Stop the sound, unshade the music, and then
+     * start playing again.
+     */
 
-        private void RestartPlayMeasuresInLoop() {
-            playstate = stopped;
-            Log.d("shading" , "10010101010101011");
+    private void RestartPlayMeasuresInLoop() {
+        timeCounter.playstate = stopped;
+        Log.d("shading", "10010101010101011");
 
-            piano.ShadeNotes(-10, (int) prevPulseTime);
-            sheet.ShadeNotes(-10, (int) prevPulseTime, false);
+        piano.ShadeNotes(-10, (int) prevPulseTime);
+        sheet.ShadeNotes(-10, (int) prevPulseTime, false);
+        currentPulseTime = 0;
+        prevPulseTime = -1;
+        StopSound();
+        timer.postDelayed(DoPlay, 300);
+    }
+
+
+    // ----------------------------------------------
+    // ------------- runable implementation----------
+    // ----------------------------------------------
+
+    /**
+     * The callback for the timer. If the midi is still playing,
+     * update the currentPulseTime and shade the sheet music.
+     * If a stop or pause has been initiated (by someone clicking
+     * the stop or pause button), then stop the timer.
+     */
+    public class callBack implements Runnable {
+        double[][] finalPeaks;
+        double currentTime;
+        double currentPulseTime;
+
+        public callBack() {
             currentPulseTime = 0;
-            prevPulseTime = -1;
-            StopSound();
-            timer.postDelayed(DoPlay, 300);
         }
 
+        public void setPeaks(double[][] finalPeaks, double time, boolean silence) {
+            this.finalPeaks = finalPeaks;
+            currentTime = time;
+        }
 
-        // ----------------------------------------------
-        // ------------- runable implementation----------
-        // ----------------------------------------------
-
-        /**
-         * The callback for the timer. If the midi is still playing,
-         * update the currentPulseTime and shade the sheet music.
-         * If a stop or pause has been initiated (by someone clicking
-         * the stop or pause button), then stop the timer.
-         */
-        public class callBack implements Runnable {
-            double[][] finalPeaks;
-            double currentTime;
-            double currentPulseTime;
-            public callBack() {
-                currentPulseTime = 0;
-            }
-
-            public void setPeaks(double[][] finalPeaks, double time, boolean silence) {
-                this.finalPeaks = finalPeaks;
-                currentTime = time;
-            }
-
-            @Override
-            public void run() {
+        @Override
+        public void run() {
 //                Log.d("shades", "curr time: " + currentTime);
-//                Log.d("shades", "playing: " + playstate);
+//                Log.d("shades", "playing: " +  timeCounter.playstate);
 
-                if (midifile == null || sheet == null) {
-                    playstate = stopped;
-                    return;
-                } else if (playstate == stopped || playstate == paused) {
+            if (midifile == null || sheet == null) {
+                timeCounter.playstate = stopped;
+                return;
+            } else if ( timeCounter.playstate == stopped ||  timeCounter.playstate == paused) {
             /* This case should never happen */
-                    return;
-                } else if (playstate == initStop) {
-                    return;
-                } else if (playstate == playing) {
+                return;
+            } else if ( timeCounter.playstate == initStop) {
+                return;
+            } else if ( timeCounter.playstate == playing) {
 //                    long msec = SystemClock.uptimeMillis() - startTime;
-                    prevPulseTime = Math.round(currentPulseTime);
+                prevPulseTime = Math.round(currentPulseTime);
 
-                    currentPulseTime = Math.round(currentTime);
+                currentPulseTime = Math.round(currentTime);
 //                    Log.d("shades" , "curr: " + currentPulseTime + " prev: " + prevPulseTime);
 
 //                    currentPulseTime = startPulseTime + msec * pulsesPerMsec;
@@ -917,147 +928,149 @@ public class MidiPlayer extends LinearLayout {
 //                    }
 
             /* Stop if we've reached the end of the song */
-                    if (currentPulseTime > midifile.getTotalPulses()) {
-                        DoStop();
-                        return;
-                    }
-                    Log.d("shading" , "calling shading");
-                    sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, true, finalPeaks);
-                    piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
-//                    timer.postDelayed(TimerCallback, 312);
-                    return;
-                } else if (playstate == initPause) {
-                    Log.d("shading" , "1111111111111111111");
-
-                    long msec = SystemClock.uptimeMillis() - startTime;
-                    StopSound();
-
-                    prevPulseTime = currentPulseTime;
-                    currentPulseTime = startPulseTime + msec * pulsesPerMsec;
-                    sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, false);
-                    piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
-                    playstate = paused;
-                    timer.postDelayed(ReShade, 1000);
+                if (currentPulseTime > midifile.getTotalPulses()) {
+                    DoStop();
                     return;
                 }
-            }
+                Log.d("shading", "calling shading");
+                sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, true, finalPeaks);
+                piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
+//                    timer.postDelayed(TimerCallback, 312);
+                return;
+            } else if ( timeCounter.playstate == initPause) {
+                Log.d("shading", "1111111111111111111");
 
+                long msec = SystemClock.uptimeMillis() - startTime;
+                StopSound();
+
+                prevPulseTime = currentPulseTime;
+                currentPulseTime = startPulseTime + msec * pulsesPerMsec;
+                sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, false);
+                piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
+                timeCounter.playstate = paused;
+                timer.postDelayed(ReShade, 1000);
+                return;
+            }
+        }
+
+
+    }
+
+    public class listenThreadCreator {
+
+
+        // ------------------------------------------
+        // ------------- variables -----------------
+        // ------------------------------------------
+
+
+        public final static int SR = 44100;
+        public final static int MAX_FREQ_SIZE = 5;
+        public final static int FREQ = 0;
+        public final static int END_TIME = 1;
+        public final static int DURATION = 2;
+        public final static int PEAK_START = 0;
+        public final static int PEAK_END = 1;
+
+        ArrayList<com.abitbol.ophir.iplay.MidiNote> notes; // will hold the notes of the song
+        double[][] tempExpNotes = new double[5][4]; // will hold the current notes we are looking for
+        double[][] expNotes = new double[5][4]; // will hold the current notes we are looking for
+        int[] noteDB; // array of possible notes, according to bufferSize;
+
+        boolean endMidi = false;
+        boolean running = false; // is the record thread running
+
+        MidiFile mfile; // the midi file to play
+        FileUri midiToPlay; // uri of the midi file
+        int BPM, PPQ; // the tempo of the song
+        double p2s; // pulses to seconds coeff.
+        double windowSizeTime, windowSize, fourierCoef; // buffer size in seconds and bits
+        int bufferSize;
+        final float threshold = (float) 0.01;
+        callBack callback;
+
+
+        public listenThreadCreator(MidiFile midifile, callBack callback) {
+            mfile = midifile;
+            getTempo();
+            bufferSize = (int) windowSize;
+            fourierCoef = SR / (2 * (windowSize));
+            final getNote gtNt = new getNote(bufferSize, fourierCoef);
+            noteDB = gtNt.getNotes();
+            this.callback = callback;
+        }
+
+        public Thread getThread() {
+            final AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(SR, bufferSize, 0);
+            dispatcher.addAudioProcessor(createProcess());
+            return new Thread(dispatcher, "Audio Dispatcher");
+
+        }
+        public Countdown getCountDown()
+        {
+            return new Countdown(BPM ,getThread() , activity );
+        }
+
+        private void getTempo() {
+
+            MidiOptions options = new MidiOptions(mfile);
+            BPM = 60000000 / options.tempo;
+            PPQ = mfile.returnPPQ();
+            p2s = 60000 / (double) ((BPM * PPQ));
+            windowSizeTime = 60 / (4 * (double) BPM);
+            windowSize = Math.round(windowSizeTime * SR);
+//                Log.d("midi", "tempo , windowSizeTime, windowSize: " + BPM + " , " + windowSizeTime + " , " + windowSize);
 
         }
 
-        public class listenThreadCreator {
+        AudioProcessor createProcess() {
+            AudioProcessor fftProcessor = new AudioProcessor() {
 
 
-            // ------------------------------------------
-            // ------------- variables -----------------
-            // ------------------------------------------
+                // silence detector:
+                SilenceDetector silenceDetector = new SilenceDetector();
+                double silenceThreshold = SilenceDetector.DEFAULT_SILENCE_THRESHOLD;
+
+                FloatFFT_1D jft = new FloatFFT_1D(bufferSize);
+
+                float[] amplitudes = new float[bufferSize];
+                double[][] finalPeaks;
+
+                FFT fft = new FFT(bufferSize);
+                //            float[] amplitudes = new float[bufferSize / 2];
+                float[] finalAmplitudes = new float[bufferSize];
+                boolean firstRun = true;
+                double timeElapsed;
 
 
-            public final static int SR = 44100;
-            public final static int MAX_FREQ_SIZE = 5;
-            public final static int FREQ = 0;
-            public final static int END_TIME = 1;
-            public final static int DURATION = 2;
-            public final static int PEAK_START = 0;
-            public final static int PEAK_END = 1;
-
-            ArrayList<com.abitbol.ophir.iplay.MidiNote> notes; // will hold the notes of the song
-            double[][] tempExpNotes = new double[5][4]; // will hold the current notes we are looking for
-            double[][] expNotes = new double[5][4]; // will hold the current notes we are looking for
-            int[] noteDB; // array of possible notes, according to bufferSize;
-
-            boolean endMidi = false;
-            boolean running = false; // is the record thread running
-
-            MidiFile mfile; // the midi file to play
-            FileUri midiToPlay; // uri of the midi file
-            int BPM, PPQ; // the tempo of the song
-            double p2s; // pulses to seconds coeff.
-            double windowSizeTime, windowSize, fourierCoef; // buffer size in seconds and bits
-            int bufferSize;
-            final float threshold = (float) 0.01;
-            callBack callback;
-
-
-            public listenThreadCreator(MidiFile midifile, callBack callback) {
-                mfile = midifile;
-                getTempo();
-                bufferSize = (int) windowSize;
-                fourierCoef = SR / (2 * (windowSize));
-                final getNote gtNt = new getNote(bufferSize, fourierCoef);
-                noteDB = gtNt.getNotes();
-                this.callback = callback;
-            }
-
-            public Thread getThread() {
-                final AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(SR, bufferSize, 0);
-                dispatcher.addAudioProcessor(createProcess());
-                return new Thread(dispatcher, "Audio Dispatcher");
-
-            }
-
-            private void getTempo() {
-
-                MidiOptions options = new MidiOptions(mfile);
-                BPM = 60000000 / options.tempo;
-                PPQ = mfile.returnPPQ();
-                p2s = 60000 / (double) ((BPM * PPQ));
-                windowSizeTime = 60 / (4 * (double) BPM);
-                windowSize = Math.round(windowSizeTime * SR);
-//                Log.d("midi", "tempo , windowSizeTime, windowSize: " + BPM + " , " + windowSizeTime + " , " + windowSize);
-
-            }
-
-            AudioProcessor createProcess() {
-                AudioProcessor fftProcessor = new AudioProcessor() {
-
-
-
-
-                    // silence detector:
-                    SilenceDetector silenceDetector = new SilenceDetector();
-                    double silenceThreshold = SilenceDetector.DEFAULT_SILENCE_THRESHOLD;
-
-                    FloatFFT_1D jft = new FloatFFT_1D(bufferSize);
-
-                    float[] amplitudes = new float[bufferSize];
-                    double[][] finalPeaks;
-
-                    FFT fft = new FFT(bufferSize);
-                    //            float[] amplitudes = new float[bufferSize / 2];
-                    float[] finalAmplitudes = new float[bufferSize];
-                    boolean firstRun = true;
-                    double timeElapsed;
-
-
-                    int noteIdx = 0;
+                int noteIdx = 0;
 //                    int maxNotes = notes.size();
 
-                    @Override
-                    public void processingFinished() {
+                @Override
+                public void processingFinished() {
 //                        Log.d("chord" , "interupted!");
-                        // TODO Auto-generated method stub
-                    }
+                    // TODO Auto-generated method stub
+                }
 
-                    /**
-                     * on each audio event (buffer if full) perform this:
-                     * @param audioEvent the buffer event
-                     * @return
-                     */
-                    public boolean process(AudioEvent audioEvent) {
+                /**
+                 * on each audio event (buffer if full) perform this:
+                 * @param audioEvent the buffer event
+                 * @return
+                 */
+                public boolean process(AudioEvent audioEvent) {
 
 
-                        if (timeCounter.firstRun) {
+                    if (timeCounter.firstRun) {
 
 //                            timeCounter.startTime = System.nanoTime();
 //                            Log.d("thread" , "starting frop the top!");
 
-                            startTime = System.nanoTime();
-                            timeCounter.firstRun = false;
-                            timeElapsed = 0;
-                        } else {
-                            timeElapsed = ((double) (System.nanoTime() - startTime)) / 1000000.0;
-                        }
+                        startTime = System.nanoTime();
+                        timeCounter.firstRun = false;
+                        timeElapsed = 0;
+                    } else {
+                        timeElapsed = ((double) (System.nanoTime() - startTime)) / 1000000.0;
+                    }
 //                        if (firstRun) {
 //
 //                            timeCounter.startTime = System.nanoTime();
@@ -1070,15 +1083,15 @@ public class MidiPlayer extends LinearLayout {
 //                            timeElapsed = ((double) (System.nanoTime() - startTime)) / 1000000.0;
 //                        }
 
-                        // the buffer containing the audio data:
-                        float[] audioFloatBuffer = audioEvent.getFloatBuffer();
-                        float[] envelope = audioFloatBuffer;
+                    // the buffer containing the audio data:
+                    float[] audioFloatBuffer = audioEvent.getFloatBuffer();
+                    float[] envelope = audioFloatBuffer;
 
-                        // check to see if there is anything playing:
-                        boolean silence = silenceDetector.isSilence(audioFloatBuffer);
+                    // check to see if there is anything playing:
+                    boolean silence = silenceDetector.isSilence(audioFloatBuffer);
 
-                        // if it isn't silent:
-                        if (!silence) {
+                    // if it isn't silent:
+                    if (!silence) {
 
 ////               ===============================================================
 ////               ========================  Envelope  ===========================
@@ -1151,50 +1164,50 @@ public class MidiPlayer extends LinearLayout {
 //                        continuousNote = true;
 //                    }
 
-                            float maxAmp = 0;
+                        float maxAmp = 0;
 
 
-                            // perform the fourier transofrm:
-                            float[] transformbuffer = new float[bufferSize * 2];
+                        // perform the fourier transofrm:
+                        float[] transformbuffer = new float[bufferSize * 2];
 
-                            System.arraycopy(audioFloatBuffer, 0, transformbuffer, 0,
-                                    audioFloatBuffer.length);
+                        System.arraycopy(audioFloatBuffer, 0, transformbuffer, 0,
+                                audioFloatBuffer.length);
 
-                            jft.realForward((float[]) transformbuffer);
+                        jft.realForward((float[]) transformbuffer);
 //                    jft.realForward(transformbuffer);
-                            amplitudes = transformbuffer;
+                        amplitudes = transformbuffer;
 
 
 //                 find peaks:
-                            float max = 0;
-                            float freq = 0;
-                            int numPeaks = 0;
-                            double[] peaks = new double[100];
+                        float max = 0;
+                        float freq = 0;
+                        int numPeaks = 0;
+                        double[] peaks = new double[100];
 
 
-                            for (int i = 0; i < amplitudes.length / 2; i++) {
-                                amplitudes[i] = amplitudes[i] * amplitudes[i];
+                        for (int i = 0; i < amplitudes.length / 2; i++) {
+                            amplitudes[i] = amplitudes[i] * amplitudes[i];
 //                        max = (max < amplitudes[i]) ? amplitudes[i] : max;
-                            }
+                        }
 //                            Log.d("max spec amp", "spec max: " + max);
 
 //                    --------------------------------------------------------------
 //                    -------------------------  HPF  ------------------------------
 //                    --------------------------------------------------------------
 
-                            float[] amplitudesDown2 = new float[bufferSize]; // downsample by half
-                            float[] amplitudesDown3 = new float[bufferSize]; // downsample by half
+                        float[] amplitudesDown2 = new float[bufferSize]; // downsample by half
+                        float[] amplitudesDown3 = new float[bufferSize]; // downsample by half
 //                    float[] amplitudesDown4 = new float[bufferSize]; // downsample by half
 //                    float[] amplitudesDown5 = new float[bufferSize]; // downsample by half
 
-                            for (int i = 0; i < amplitudesDown2.length / 2; i++) {
+                        for (int i = 0; i < amplitudesDown2.length / 2; i++) {
 
-                                amplitudesDown2[i] = amplitudes[i * 2];
-                            }
-                            for (int i = 0; i < amplitudesDown3.length / 3; i++) {
+                            amplitudesDown2[i] = amplitudes[i * 2];
+                        }
+                        for (int i = 0; i < amplitudesDown3.length / 3; i++) {
 
-                                amplitudesDown3[i] = amplitudes[i * 3];
-                            }
+                            amplitudesDown3[i] = amplitudes[i * 3];
+                        }
 //                    for (int i = 0; i < amplitudesDown3.length / 4; i++) {
 //
 //                        amplitudesDown4[i] = amplitudes[i * 4];
@@ -1203,71 +1216,97 @@ public class MidiPlayer extends LinearLayout {
 //
 //                        amplitudesDown5[i] = amplitudes[i * 5];
 //                    }
-                            max = 0;
-                            for (int i = 0; i < amplitudes.length / 2; i++) {
-                                finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]
-                                ) * noteDB[i];
-                                max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
+                        max = 0;
+                        for (int i = 0; i < amplitudes.length / 2; i++) {
+                            finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]
+                            ) * noteDB[i];
+                            max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
 
 //                        max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
-                            }
+                        }
 //                    finalAmplitudes = amplitudes;
-                            for (int i = 0; i < amplitudes.length / 2; i++) {
-                                finalAmplitudes[i] /= max;
-                            }
-                            finalPeaks = new double[100][2];
-                            int numFinalPeaks = 0;
+                        for (int i = 0; i < amplitudes.length / 2; i++) {
+                            finalAmplitudes[i] /= max;
+                        }
+                        finalPeaks = new double[100][2];
+                        int numFinalPeaks = 0;
 
-                            for (int i = 1; i < finalAmplitudes.length / 2; i++) {
+                        for (int i = 1; i < finalAmplitudes.length / 2; i++) {
 
-                                // check some threshold and close values:
-                                if (finalAmplitudes[i] > 0.0000001
-                                        && finalAmplitudes[i] > finalAmplitudes[i - 1]
-                                        && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
+                            // check some threshold and close values:
+                            if (finalAmplitudes[i] > 0.0000001
+                                    && finalAmplitudes[i] > finalAmplitudes[i - 1]
+                                    && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
 //                            check for close range
-                                    boolean biggestPeak = true;
-                                    // get start index and end index for peak checking:
-                                    int stIn = ((i - (int) (10 / fourierCoef)) < 0) ? i : (int) (10 / fourierCoef);
-                                    int endIn = ((i + (int) (10 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (10 / fourierCoef);
-                                    for (int j = -stIn; j < stIn + endIn; j++) {
+                                boolean biggestPeak = true;
+                                // get start index and end index for peak checking:
+                                int stIn = ((i - (int) (10 / fourierCoef)) < 0) ? i : (int) (10 / fourierCoef);
+                                int endIn = ((i + (int) (10 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (10 / fourierCoef);
+                                for (int j = -stIn; j < stIn + endIn; j++) {
 //                                Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
 
-                                        if (finalAmplitudes[i] < finalAmplitudes[i + j]) {
+                                    if(j!=0)
+                                    {
+                                        if (0.6*finalAmplitudes[i] < finalAmplitudes[i + j]) {
                                             biggestPeak = false;
                                             break;
                                         }
                                     }
 
-                                    if (biggestPeak) {
-//                                Log.d("found freqs FINAL", "i =  " + i + " freq: " + (i) * fourierCoef + " amp: " + finalAmplitudes[i]);
-                                        finalPeaks[numFinalPeaks][0] = i * fourierCoef;
-                                        finalPeaks[numFinalPeaks][1] = finalAmplitudes[i];
-                                        numFinalPeaks++;
-                                    }
+                                }
 
+                                if (biggestPeak) {
+//                                Log.d("found freqs FINAL", "i =  " + i + " freq: " + (i) * fourierCoef + " amp: " + finalAmplitudes[i]);
+                                    finalPeaks[numFinalPeaks][0] = i * fourierCoef;
+                                    finalPeaks[numFinalPeaks][1] = finalAmplitudes[i];
+                                    numFinalPeaks++;
+                                }
+
+
+                            }
+                            if (numFinalPeaks > 98) break;
+                        }
+
+                        // bubble sort:
+                        ////                        double temp0 = 0, temp1 = 0;
+//
+//                        for (int i = 0; i < numFinalPeaks; i++) {
+//                            for (int j = 1; j < (numFinalPeaks - i); j++) {
+//
+//                                if (finalPeaks[j - 1][1] > finalPeaks[j][1]) {
+//                                    //swap the elements!
+//                                    temp0 = finalPeaks[j - 1][0];
+//                                    temp1 = finalPeaks[j - 1][1];
+//                                    finalPeaks[j - 1][0] = finalPeaks[j][0];
+//                                    finalPeaks[j - 1][1] = finalPeaks[j][1];
+//                                    finalPeaks[j][0] = temp0;
+//                                    finalPeaks[j][1] = temp1;
+//                                }
+//
+//                            }
+//                        }
+
+                        int n = numFinalPeaks;
+                        double temp0 = 0, temp1 = 0;
+
+                        for (int i = 0; i < n; i++) {
+                            for (int j = 1; j < (n - i); j++) {
+
+                                if (finalPeaks[j - 1][1] < finalPeaks[j][1]) {
+                                    //swap the elements!
+                                    temp0 = finalPeaks[j - 1][0];
+                                    temp1 = finalPeaks[j - 1][1];
+
+                                    finalPeaks[j - 1][0] = finalPeaks[j][0];
+                                    finalPeaks[j - 1][1] = finalPeaks[j][1];
+
+                                    finalPeaks[j][0] = temp0;
+                                    finalPeaks[j][1] = temp1;
 
                                 }
-                                if (numFinalPeaks > 98) break;
+
                             }
-
-                            // bubble sort:
-//                    double temp0 = 0, temp1 = 0;
-
-//                    for (int i = 0; i < numFinalPeaks; i++) {
-//                        for (int j = 1; j < (numFinalPeaks - i); j++) {
-//
-//                            if (finalPeaks[j - 1][1] > finalPeaks[j][1]) {
-//                                //swap the elements!
-//                                temp0 = finalPeaks[j - 1][0];
-//                                temp1 = finalPeaks[j - 1][1];
-//                                finalPeaks[j - 1][0] = finalPeaks[j][0];
-//                                finalPeaks[j - 1][1] = finalPeaks[j][1];
-//                                finalPeaks[j][0] = temp0;
-//                                finalPeaks[j][1] = temp1;
-//                            }
-//
-//                        }
-//                    }
+                        }
 
 
 //                    String Sfreqs = "";
@@ -1314,10 +1353,10 @@ public class MidiPlayer extends LinearLayout {
 //                        }
 //                    });
 //                    }
-                        }
+                    }
 
-                        callback.setPeaks(finalPeaks , timeElapsed/p2s , silence);
-                        callback.run();
+                    callback.setPeaks(finalPeaks, timeElapsed / p2s, silence);
+                    callback.run();
 
 //                runOnUiThread(new Runnable() {
 //                    @Override
@@ -1330,16 +1369,16 @@ public class MidiPlayer extends LinearLayout {
 //                Log.d("silence", "is playing: " + !silence);
 
 
-                        return true;
-                    }
+                    return true;
+                }
 
-                };
+            };
 
-                return fftProcessor;
-            }
-
-
+            return fftProcessor;
         }
 
+
     }
+
+}
 

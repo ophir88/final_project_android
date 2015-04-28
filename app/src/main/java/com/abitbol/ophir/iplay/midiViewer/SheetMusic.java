@@ -255,6 +255,7 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
         paint.setTextSize(10.0f);
         paint.setColor(Color.BLACK);
 
+//        ArrayList<MidiTrack> tracks = MidiFile.CombineToSingleTrack(file.getTracks());
         ArrayList<MidiTrack> tracks = file.ChangeMidiNotes(options);
         // SetNoteSize(options.largeNoteSize);
         scrollVert = options.scrollVert;
@@ -268,6 +269,7 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
         } else {
             mainkey = new KeySignature(options.key);
         }
+
         numtracks = tracks.size();
 
         int lastStart = file.EndTime() + options.shifttime;
@@ -1396,12 +1398,14 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
         paint.setAntiAlias(true);
         bufferCanvas.scale(zoom, zoom);
         int ypos = 0;
+        int staffCount = 0;
         for (Staff staff : staffs) {
             bufferCanvas.translate(0, ypos);
 //            Log.d("shading" , "correct shading");
 
             x_shade = staff.ShadeNotes(bufferCanvas, paint, shade1,
-                    currentPulseTime, prevPulseTime, x_shade, peaks);
+                    currentPulseTime, prevPulseTime, x_shade, peaks , staffCount);
+            staffCount++;
             bufferCanvas.translate(0, -ypos);
             ypos += staff.getHeight();
             if (currentPulseTime >= staff.getEndTime()) {

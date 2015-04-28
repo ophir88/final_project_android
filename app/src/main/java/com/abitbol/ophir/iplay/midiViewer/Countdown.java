@@ -1,4 +1,4 @@
-package com.abitbol.ophir.iplay;
+package com.abitbol.ophir.iplay.midiViewer;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -7,7 +7,7 @@ import android.media.SoundPool;
 import android.os.Build;
 import android.os.CountDownTimer;
 import android.util.Log;
-
+import com.abitbol.ophir.iplay.R;
 import com.abitbol.ophir.iplay.midiViewer.timeCounter;
 
 import java.util.concurrent.TimeUnit;
@@ -21,9 +21,9 @@ public class Countdown extends CountDownTimer {
     private SoundPool tickSound;
     private int tickId;
     private boolean startThread;
-
+    final int playing = 2;
     public Countdown(long BPM, Thread listenThread, Activity act) {
-        super(60000*6/BPM, 60000/BPM );
+        super(60000*4/BPM, 60000/BPM );
         startThread = true;
         Log.d("COUNTING", "called constructor! tick every: "  +(double) BPM );
         callerAct = act;
@@ -32,7 +32,7 @@ public class Countdown extends CountDownTimer {
     }
     public void setThreadStart(boolean startThread)
     {
-     this.startThread = startThread;
+        this.startThread = startThread;
     }
 
 
@@ -45,9 +45,16 @@ public class Countdown extends CountDownTimer {
 
     @Override
     public void onFinish() {
-
+        if(startThread)
+        {
             listenThread.start();
 
+        }
+        else
+        {
+            timeCounter.firstRun = true;
+            timeCounter.playstate = playing;
+        }
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)

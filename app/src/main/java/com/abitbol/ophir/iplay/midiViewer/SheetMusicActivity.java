@@ -86,7 +86,7 @@ public class SheetMusicActivity extends Activity {
         double PPQ = midifile.returnPPQ();
         double p2s = 60000 / (double) ((BPM * PPQ));
 //        Log.d("MIDIFILE" , "BMP: " + options.tempo);
-//        Log.d("MIDIFILE" , "coeff: " + p2s);
+        Log.d("MIDIFILE" , "coeff: " + p2s);
 
 
         CRC32 crc = new CRC32();

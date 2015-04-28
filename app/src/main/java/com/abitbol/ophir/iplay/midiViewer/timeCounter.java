@@ -7,5 +7,7 @@ public  class timeCounter {
 
     static long startTime;
     static boolean firstRun;
+    static int playstate;
+
 
 }

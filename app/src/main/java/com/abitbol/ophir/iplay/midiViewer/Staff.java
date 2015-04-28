@@ -17,6 +17,8 @@ import java.util.*;
 import android.graphics.*;
 import android.util.Log;
 
+import be.tarsos.dsp.util.PitchConverter;
+
 
 /* @class Staff
  * The Staff is used to draw a single Staff (a row of measures) in the 
@@ -455,7 +457,7 @@ public class Staff {
      * Store the x coordinate location where the shade was drawn.
      */
     public int ShadeNotes(Canvas canvas, Paint paint, int shade,
-                          int currentPulseTime, int prevPulseTime, int x_shade, double[][] peaks) {
+                          int currentPulseTime, int prevPulseTime, int x_shade, double[][] peaks, int staffCount) {
 //        Log.d("chord" , "callback called, start time is: " + currentPulseTime);
 
 
@@ -556,9 +558,50 @@ public class Staff {
                     NoteData[] notes = ((ChordSymbol) curr).getNotedata();
                     for(NoteData note : notes)
                     {
-                        note.playCount++;
-                        Log.d("chord" , "playing note number: "+ note.number + " played: " + note.playCount + "times");
-                        Log.d("chord" , note.number + " exp count:  " + note.expCount);
+                        int noteNumber = note.number;
+//                        if(staffCount==1)
+//                        {
+//                            noteNumber = note.number-20;
+//                        }
+//                        else
+//                        {
+//                            noteNumber = note.number;
+//
+//                        }
+                        if(peaks!=null)
+                        {
+                            Log.d("chordPeaks" , "**************************************");
+                            Log.d("chordPeaks" , "");
+                            Log.d("chordPeaks" , "looking for: " + noteNumber);
+                            Log.d("chordPeaks" , "---------------------");
+                            Log.d("chordPeaks" , "");
+
+//                            Math.min(pea)
+                            for(int peakIndex = 0 ; peakIndex< 6 ; peakIndex++)
+                        {
+                            if(peaks[peakIndex][0]==0)
+                            {
+                                break;
+                            }
+                            int peak =  PitchConverter.hertzToMidiKey(peaks[peakIndex][0]);
+                            if(noteNumber == peak)
+                            {
+                                note.playCount++;
+
+                            }
+
+                            Log.d("chordPeaks" , "found peak at: [ "+peak+" , " + peaks[peakIndex][0]+" ]");
+                        }
+                            Log.d("chordPeaks" , "**************************************");
+                            Log.d("chordPeaks" , "");
+                            Log.d("chordPeaks" , "");
+
+
+                        }
+//
+//                        note.playCount++;
+                        Log.d("chord" , "staff "+ staffCount+": playing note number: "+ noteNumber + " played: " + note.playCount + " times");
+                        Log.d("chord" , noteNumber + " exp count:  " + note.expCount);
 
 //                        Log.d("chord" , "note starts at: " + curr.getStartTime()+", for " + note.duration);
                         if(note.playCount >= note.expCount)

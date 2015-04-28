@@ -401,6 +401,10 @@ public class MainActivity extends ActionBarActivity {
 //                    float[] amplitudesDown4 = new float[bufferSize]; // downsample by half
 //                    float[] amplitudesDown5 = new float[bufferSize]; // downsample by half
 
+                    for (int i = 0; i < amplitudes.length / 2; i++) {
+                        amplitudes[i] = (amplitudes[i]) * noteDB[i];
+                    }
+
                     for (int i = 0; i < amplitudesDown2.length / 2; i++) {
 
                         amplitudesDown2[i] = amplitudes[i * 2];
@@ -418,12 +422,12 @@ public class MainActivity extends ActionBarActivity {
 //                        amplitudesDown5[i] = amplitudes[i * 5];
 //                    }
                     max = 0;
+
                     for (int i = 0; i < amplitudes.length / 2; i++) {
                         finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]
-                              ) * noteDB[i];
+                              );
                         max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
 
-//                        max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
                     }
 //                    finalAmplitudes = amplitudes;
                     for (int i = 0; i < amplitudes.length / 2; i++) {
@@ -441,6 +445,11 @@ public class MainActivity extends ActionBarActivity {
 
                     for (int i = 1; i < finalAmplitudes.length / 2; i++) {
 
+
+                        /**
+                         * NEXT IDEA:
+                         * maybe if i checked and there is something bigger ahead, erase the current one!
+                         */
                         // check some threshold and close values:
                         if (finalAmplitudes[i] > 0.0000001
                                 && finalAmplitudes[i] > finalAmplitudes[i - 1]
@@ -448,14 +457,26 @@ public class MainActivity extends ActionBarActivity {
 //                            check for close range
                             boolean biggestPeak = true;
                             // get start index and end index for peak checking:
-                            int stIn = ((i - (int) (10 / fourierCoef)) < 0) ? i : (int) (10 / fourierCoef);
-                            int endIn = ((i + (int) (10 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (10 / fourierCoef);
-                            for (int j = -stIn; j < stIn + endIn; j++) {
-                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
+                            int stIn = ((i - (int) (15 / fourierCoef)) < 0) ? i : (int) (15 / fourierCoef);
+                            int endIn = ((i + (int) (15 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (15 / fourierCoef);
+                            Log.d("DEBUGIS", "[for the freq: i = "+i+" - " + i* fourierCoef+" ]");
 
-                                if (finalAmplitudes[i] < finalAmplitudes[i + j]) {
-                                    biggestPeak = false;
-                                    break;
+                            for (int j = -stIn; j < stIn + endIn; j++) {
+//                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
+                                if(j != 0)
+                                {
+                                    Log.d("DEBUGIS", "[ "+0.1*finalAmplitudes[i]+" ] < [ "+ finalAmplitudes[i + j] + " ]");
+
+                                }
+
+                                if (0.1*finalAmplitudes[i] < finalAmplitudes[i + j]) {
+                                    if(j != 0)
+                                    {
+                                        finalAmplitudes[i]=0;
+                                        biggestPeak = false;
+                                        break;
+                                    }
+
                                 }
                             }
 
@@ -469,7 +490,15 @@ public class MainActivity extends ActionBarActivity {
                             }
 
 
+
                         }
+//                        Log.d("DEBUGIS", "******************************]");
+//
+//                        for( int t = 0 ; t <numFinalPeaks ; t++)
+//                        {
+//                            Log.d("DEBUGIS", "[ "+finalPeaks[t][0]+" ]");
+//
+//                        }
                         if (numFinalPeaks > 98) break;
                     }
 
