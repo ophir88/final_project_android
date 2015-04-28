@@ -67,6 +67,19 @@ import be.tarsos.dsp.util.fft.FFT;
  * and determines which notes to shade.
  */
 public class MidiPlayer extends LinearLayout {
+
+    volatile boolean keepRun;
+
+    /**
+     * first run?
+     */
+    boolean threadRunning;
+
+    /**
+     * listening thread
+     */
+    Thread listThread;
+
     static Bitmap rewindImage;
     /**
      * The rewind image
@@ -216,6 +229,7 @@ public class MidiPlayer extends LinearLayout {
      */
     public MidiPlayer(Context context) {
         super(context);
+        threadRunning = false;
         LoadImages(context);
         this.context = context;
         this.midifile = null;
@@ -410,6 +424,8 @@ public class MidiPlayer extends LinearLayout {
         if ((file == midifile && midifile != null && playstate == paused)) {
             options = opt;
             sheet = s;
+            Log.d("shading" , "123456789");
+
             sheet.ShadeNotes((int) currentPulseTime, (int) -1, false);
 
             /* We have to wait some time (200 msec) for the sheet music
@@ -431,6 +447,8 @@ public class MidiPlayer extends LinearLayout {
     Runnable ReShade = new Runnable() {
         public void run() {
             if (playstate == paused || playstate == stopped) {
+//                Log.d("shading" , "9999999595988");
+
                 sheet.ShadeNotes((int) currentPulseTime, (int) -10, false);
                 piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
             }
@@ -568,9 +586,22 @@ public class MidiPlayer extends LinearLayout {
 
         this.setVisibility(View.GONE);
         playstate = playing;
+        timeCounter.firstRun = true;
 
-        creator.getThread().start();
-//        timer.removeCallbacks(TimerCallback);
+        if(!threadRunning)
+        {
+            sheet.cleanCounters();
+            threadRunning = true;
+            listThread = creator.getThread();
+            listThread.start();
+        }
+        else{
+            sheet.cleanCounters();
+
+        }
+//        listThread = creator.getThread();
+//        listThread.start();
+        //        timer.removeCallbacks(TimerCallback);
 //        timer.postDelayed(DoPlay, 1000);
     }
 
@@ -611,7 +642,7 @@ public class MidiPlayer extends LinearLayout {
             timer.removeCallbacks(TimerCallback);
             timer.removeCallbacks(ReShade);
             timer.postDelayed(TimerCallback, 100);
-            Log.d("shading" , "2222222222222222222");
+//            Log.d("shading" , "2222222222222222222");
 
             sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, true);
             piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
@@ -660,6 +691,7 @@ public class MidiPlayer extends LinearLayout {
             playstate = initStop;
             DoStop();
         } else if (playstate == paused) {
+
             DoStop();
         }
     }
@@ -785,7 +817,7 @@ public class MidiPlayer extends LinearLayout {
                     DoStop();
                     return;
                 }
-                Log.d("shading" , "8888888888888888888");
+//                Log.d("shading" , "8888888888888888888");
 
                 sheet.ShadeNotes((int)currentPulseTime, (int)prevPulseTime, true);
                 piano.ShadeNotes((int)currentPulseTime, (int)prevPulseTime);
@@ -798,7 +830,7 @@ public class MidiPlayer extends LinearLayout {
 
                 prevPulseTime = currentPulseTime;
                 currentPulseTime = startPulseTime + msec * pulsesPerMsec;
-                Log.d("shading" , "9999999999999999");
+//                Log.d("shading" , "9999999999999999");
 
                 sheet.ShadeNotes((int)currentPulseTime, (int)prevPulseTime, false);
                 piano.ShadeNotes((int)currentPulseTime, (int)prevPulseTime);
@@ -854,7 +886,7 @@ public class MidiPlayer extends LinearLayout {
 
             @Override
             public void run() {
-                Log.d("shades", "curr time: " + currentTime);
+//                Log.d("shades", "curr time: " + currentTime);
 //                Log.d("shades", "playing: " + playstate);
 
                 if (midifile == null || sheet == null) {
@@ -868,8 +900,9 @@ public class MidiPlayer extends LinearLayout {
                 } else if (playstate == playing) {
 //                    long msec = SystemClock.uptimeMillis() - startTime;
                     prevPulseTime = Math.round(currentPulseTime);
+
                     currentPulseTime = Math.round(currentTime);
-                    Log.d("shades" , "curr: " + currentPulseTime + " prev: " + prevPulseTime);
+//                    Log.d("shades" , "curr: " + currentPulseTime + " prev: " + prevPulseTime);
 
 //                    currentPulseTime = startPulseTime + msec * pulsesPerMsec;
 
@@ -889,8 +922,7 @@ public class MidiPlayer extends LinearLayout {
                         return;
                     }
                     Log.d("shading" , "calling shading");
-
-                    sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, true);
+                    sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, true, finalPeaks);
                     piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
 //                    timer.postDelayed(TimerCallback, 312);
                     return;
@@ -912,7 +944,6 @@ public class MidiPlayer extends LinearLayout {
 
 
         }
-
 
         public class listenThreadCreator {
 
@@ -973,12 +1004,14 @@ public class MidiPlayer extends LinearLayout {
                 p2s = 60000 / (double) ((BPM * PPQ));
                 windowSizeTime = 60 / (4 * (double) BPM);
                 windowSize = Math.round(windowSizeTime * SR);
-                Log.d("midi", "tempo , windowSizeTime, windowSize: " + BPM + " , " + windowSizeTime + " , " + windowSize);
+//                Log.d("midi", "tempo , windowSizeTime, windowSize: " + BPM + " , " + windowSizeTime + " , " + windowSize);
 
             }
 
             AudioProcessor createProcess() {
                 AudioProcessor fftProcessor = new AudioProcessor() {
+
+
 
 
                     // silence detector:
@@ -1002,6 +1035,7 @@ public class MidiPlayer extends LinearLayout {
 
                     @Override
                     public void processingFinished() {
+//                        Log.d("chord" , "interupted!");
                         // TODO Auto-generated method stub
                     }
 
@@ -1013,14 +1047,28 @@ public class MidiPlayer extends LinearLayout {
                     public boolean process(AudioEvent audioEvent) {
 
 
+                        if (timeCounter.firstRun) {
 
-                        if (firstRun) {
+//                            timeCounter.startTime = System.nanoTime();
+//                            Log.d("thread" , "starting frop the top!");
+
                             startTime = System.nanoTime();
-                            firstRun = false;
+                            timeCounter.firstRun = false;
                             timeElapsed = 0;
                         } else {
                             timeElapsed = ((double) (System.nanoTime() - startTime)) / 1000000.0;
                         }
+//                        if (firstRun) {
+//
+//                            timeCounter.startTime = System.nanoTime();
+//                            Log.d("thread" , "time: " + timeCounter.startTime);
+//
+//                            startTime = System.nanoTime();
+//                            firstRun = false;
+//                            timeElapsed = 0;
+//                        } else {
+//                            timeElapsed = ((double) (System.nanoTime() - startTime)) / 1000000.0;
+//                        }
 
                         // the buffer containing the audio data:
                         float[] audioFloatBuffer = audioEvent.getFloatBuffer();
@@ -1128,7 +1176,7 @@ public class MidiPlayer extends LinearLayout {
                                 amplitudes[i] = amplitudes[i] * amplitudes[i];
 //                        max = (max < amplitudes[i]) ? amplitudes[i] : max;
                             }
-                            Log.d("max spec amp", "spec max: " + max);
+//                            Log.d("max spec amp", "spec max: " + max);
 
 //                    --------------------------------------------------------------
 //                    -------------------------  HPF  ------------------------------
@@ -1191,7 +1239,7 @@ public class MidiPlayer extends LinearLayout {
                                     }
 
                                     if (biggestPeak) {
-                                Log.d("found freqs FINAL", "i =  " + i + " freq: " + (i) * fourierCoef + " amp: " + finalAmplitudes[i]);
+//                                Log.d("found freqs FINAL", "i =  " + i + " freq: " + (i) * fourierCoef + " amp: " + finalAmplitudes[i]);
                                         finalPeaks[numFinalPeaks][0] = i * fourierCoef;
                                         finalPeaks[numFinalPeaks][1] = finalAmplitudes[i];
                                         numFinalPeaks++;

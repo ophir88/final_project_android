@@ -455,7 +455,14 @@ public class Staff {
      * Store the x coordinate location where the shade was drawn.
      */
     public int ShadeNotes(Canvas canvas, Paint paint, int shade,
-                          int currentPulseTime, int prevPulseTime, int x_shade) {
+                          int currentPulseTime, int prevPulseTime, int x_shade, double[][] peaks) {
+//        Log.d("chord" , "callback called, start time is: " + currentPulseTime);
+
+
+        if(((currentPulseTime==prevPulseTime) && (currentPulseTime == 0)))
+        {
+            prevPulseTime = -10;
+        }
 
         /* If there's nothing to unshade, or shade, return */
         if ((starttime > prevPulseTime || endtime < prevPulseTime) &&
@@ -492,6 +499,7 @@ public class Staff {
             }
 
 
+
             /* If we've past the previous and current times, we're done. */
             if ((start > prevPulseTime) && (start > currentPulseTime)) {
                 if (x_shade == 0) {
@@ -502,7 +510,6 @@ public class Staff {
             /* If shaded notes are the same, we're done */
             if ((start <= currentPulseTime) && (currentPulseTime < end) &&
                     (start <= prevPulseTime) && (prevPulseTime < end)) {
-
                 x_shade = xpos;
                 return x_shade;
             }
@@ -527,6 +534,17 @@ public class Staff {
 
             /* If symbol is in the current time, draw a shaded background */
             if ((start <= currentPulseTime) && (currentPulseTime < end)) {
+                if(curr instanceof ChordSymbol)
+                {
+                    NoteData[] notes = ((ChordSymbol) curr).getNotedata();
+                    for(NoteData note : notes)
+                    {
+                        note.playCount++;
+                        Log.d("chord" , "playing note number: "+ note.number + " played: " + note.playCount + "times");
+                        Log.d("chord" , "note starts at: " + curr.getStartTime()+", for " + note.duration);
+
+                    }
+                }
                 x_shade = xpos;
                 canvas.translate(xpos, 0);
                 paint.setStyle(Paint.Style.FILL);
@@ -579,6 +597,21 @@ public class Staff {
         return x_shade;
     }
 
+    public void cleanSymbols()
+    {
+        for(MusicSymbol symbol :symbols)
+        {
+            if(symbol instanceof ChordSymbol)
+            {
+                NoteData[] notes = ((ChordSymbol) symbol).getNotedata();
+                for(NoteData note : notes)
+                {
+                    note.playCount = 0;
+
+                }
+            }
+        }
+    }
     @Override
     public String toString() {
         String result = "Staff clef=" + clefsym.toString() + "\n";

@@ -1349,6 +1349,16 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
     }
 
 
+
+    /**
+     * same as below, overloading peaks:
+     */
+    public void ShadeNotes(int currentPulseTime, int prevPulseTime,
+                           boolean scrollGradually) {
+        ShadeNotes(currentPulseTime, prevPulseTime, scrollGradually, null);
+    }
+
+
     /**
      * Shade all the chords played at the given pulse time.
      * First, make sure the current scroll position is in the bufferBitmap.
@@ -1357,8 +1367,8 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
      * to the shaded notes.
      */
     public void ShadeNotes(int currentPulseTime, int prevPulseTime,
-                           boolean scrollGradually) {
-        Log.d("shading" , "curr: " + currentPulseTime + " prev: " + prevPulseTime);
+                           boolean scrollGradually, double[][] peaks ) {
+//        Log.d("shading" , "curr: " + currentPulseTime + " prev: " + prevPulseTime);
         if (!surfaceReady || staffs == null) {
             return;
         }
@@ -1388,8 +1398,10 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
         int ypos = 0;
         for (Staff staff : staffs) {
             bufferCanvas.translate(0, ypos);
+//            Log.d("shading" , "correct shading");
+
             x_shade = staff.ShadeNotes(bufferCanvas, paint, shade1,
-                    currentPulseTime, prevPulseTime, x_shade);
+                    currentPulseTime, prevPulseTime, x_shade, peaks);
             bufferCanvas.translate(0, -ypos);
             ypos += staff.getHeight();
             if (currentPulseTime >= staff.getEndTime()) {
@@ -1412,7 +1424,9 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
         /* If the new scrollX, scrollY is not in the buffer,
          * we have to call this method again.
          */
-        if (scrollX < bufferX || scrollY < bufferY) {
+        if (scrollX < bufferX || scrollY < bufferY && prevPulseTime> 0) {
+//            Log.d("shading" , "this thingy!");
+
             ShadeNotes(currentPulseTime, prevPulseTime, scrollGradually);
             return;
         }
@@ -1597,6 +1611,14 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
             }
         }
     };
+
+    public void cleanCounters()
+    {
+        for (Staff staff : staffs) {
+            staff.cleanSymbols();
+        }
+    }
+
 
     public void setPlayer(MidiPlayer p) {
         player = p;

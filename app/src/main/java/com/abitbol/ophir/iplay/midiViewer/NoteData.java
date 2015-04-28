@@ -20,6 +20,9 @@ package com.abitbol.ophir.iplay.midiViewer;
 public class NoteData {
 
 
+    public int playCount;
+    public boolean played;
+
     public int number;
     /**
      * The Midi note number, used to determine the color
@@ -38,7 +41,11 @@ public class NoteData {
      */
     public Accid accid;            /** Used to create the AccidSymbols for the chord */
 
-
+    public NoteData()
+    {
+        playCount = 0;
+        played = false;
+    }
 }
 
 

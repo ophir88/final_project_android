@@ -1037,6 +1037,16 @@ public class ChordSymbol implements MusicSymbol {
     }
 
 
+    /**
+     * getter for the note data array
+     * @return notedata
+     */
+    public NoteData[] getNotedata()
+    {
+        return notedata;
+    }
+
+
     @Override
     public String toString() {
         String result = String.format("ChordSymbol clef=%1$s start=%2$s end=%3$s width=%4$s hastwostems=%5$s ",
