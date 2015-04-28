@@ -103,6 +103,7 @@ class ScanMidiFiles extends AsyncTask<Integer, Integer, ArrayList<FileUri>> {
             return;
         }
         for (File file : files) {
+            Log.d("files" , "file: " + file.getName());
             if (file == null) {
                 continue;
             }
@@ -275,7 +276,7 @@ public class ChooseSongActivity extends ListActivity implements TextWatcher {
             AssetManager assets = this.getResources().getAssets();
             String[] files = assets.list("");
             for (String path : files) {
-                if (path.endsWith(".midi")) {
+                if (path.endsWith(".midi") || path.endsWith(".mid")) {
                     FileUri file = new FileUri(assets, path, path);
                     songlist.add(file);
                 }

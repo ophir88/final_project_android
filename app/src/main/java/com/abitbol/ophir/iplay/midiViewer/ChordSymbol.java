@@ -27,6 +27,9 @@ import android.util.Log;
  * quarter note, and another is an eighth note).
  */
 public class ChordSymbol implements MusicSymbol {
+
+    public boolean read;
+
     private Clef clef;
     /**
      * Which clef the chord is being drawn in
@@ -76,6 +79,7 @@ public class ChordSymbol implements MusicSymbol {
     public ChordSymbol(ArrayList<MidiNote> midinotes, KeySignature key,
                        TimeSignature time, Clef c, SheetMusic sheet) {
 
+        read = false;
         int len = midinotes.size();
         int i;
 
@@ -187,6 +191,8 @@ public class ChordSymbol implements MusicSymbol {
             notedata[i].leftside = true;
             notedata[i].whitenote = key.GetWhiteNote(midi.getNumber());
             notedata[i].duration = time.GetNoteDuration(midi.getEndTime() - midi.getStartTime());
+            notedata[i].expCount = time.GetNoteDurationEights(midi.getEndTime() - midi.getStartTime());
+
             notedata[i].accid = key.GetAccidental(midi.getNumber(), midi.getStartTime() / time.getMeasure());
 
             if (i > 0 && (notedata[i].whitenote.Dist(notedata[i - 1].whitenote) == 1)) {
@@ -554,6 +560,156 @@ public class ChordSymbol implements MusicSymbol {
         canvas.translate(-xpos, 0);
         canvas.translate(-(getWidth() - getMinWidth()), 0);
     }
+
+
+    /**
+     * Draw the note correct or wrong:
+     * - Draw the accidental symbols.
+     * - Draw the black circle notes.
+     * - Draw the stems.
+     *
+     * @param ytop The ylocation (in pixels) where the top of the staff starts.
+     */
+    public void Draw(Canvas canvas, Paint paint, int ytop, boolean correctNote, boolean beingPlayed) {
+        paint.setStyle(Paint.Style.STROKE);
+
+        /* Align the chord to the right */
+        canvas.translate(getWidth() - getMinWidth(), 0);
+
+        /* Draw the accidentals. */
+        WhiteNote topstaff = WhiteNote.Top(clef);
+        int xpos = DrawAccid(canvas, paint, ytop);
+
+        /* Draw the notes */
+        canvas.translate(xpos, 0);
+        DrawNotes(canvas, paint, ytop, topstaff, correctNote, beingPlayed);
+
+        if (sheetmusic != null && sheetmusic.getShowNoteLetters() != 0) {
+            DrawNoteLetters(canvas, paint, ytop, topstaff);
+        }
+
+        /* Draw the stems */
+        if (stem1 != null)
+            stem1.Draw(canvas, paint, ytop, topstaff);
+        if (stem2 != null)
+            stem2.Draw(canvas, paint, ytop, topstaff);
+
+        canvas.translate(-xpos, 0);
+        canvas.translate(-(getWidth() - getMinWidth()), 0);
+    }
+
+    private void DrawNotes(Canvas canvas, Paint paint, int ytop, WhiteNote topstaff, boolean correctNote, boolean beingPlayed) {
+        paint.setStrokeWidth(1);
+        for (NoteData note : notedata) {
+
+            /* Get the x,y position to draw the note */
+            int ynote = ytop + topstaff.Dist(note.whitenote) *
+                    SheetMusic.NoteHeight / 2;
+
+            int xnote = SheetMusic.LineSpace / 4;
+            if (!note.leftside)
+                xnote += SheetMusic.NoteWidth;
+
+            /* Draw rotated ellipse.  You must first translate (0,0)
+             * to the center of the ellipse.
+             */
+            canvas.translate(xnote + SheetMusic.NoteWidth / 2 + 1,
+                    ynote - SheetMusic.LineWidth + SheetMusic.NoteHeight / 2);
+            canvas.rotate(-45);
+
+            if(beingPlayed)
+            {
+                paint.setColor(Color.BLUE);
+
+            }
+            else if(correctNote)
+            {
+                paint.setColor(Color.GREEN);
+
+            }
+            else
+            {
+                paint.setColor(Color.RED);
+
+            }
+
+
+            if (note.duration == NoteDuration.Whole ||
+                    note.duration == NoteDuration.Half ||
+                    note.duration == NoteDuration.DottedHalf) {
+
+                RectF rect = new RectF(-SheetMusic.NoteWidth / 2, -SheetMusic.NoteHeight / 2,
+                        -SheetMusic.NoteWidth / 2 + SheetMusic.NoteWidth,
+                        -SheetMusic.NoteHeight / 2 + SheetMusic.NoteHeight - 1);
+                canvas.drawOval(rect, paint);
+                rect = new RectF(-SheetMusic.NoteWidth / 2, -SheetMusic.NoteHeight / 2 + 1,
+                        -SheetMusic.NoteWidth / 2 + SheetMusic.NoteWidth,
+                        -SheetMusic.NoteHeight / 2 + 1 + SheetMusic.NoteHeight - 2);
+                canvas.drawOval(rect, paint);
+                rect = new RectF(-SheetMusic.NoteWidth / 2, -SheetMusic.NoteHeight / 2 + 1,
+                        -SheetMusic.NoteWidth / 2 + SheetMusic.NoteWidth,
+                        -SheetMusic.NoteHeight / 2 + 1 + SheetMusic.NoteHeight - 3);
+                canvas.drawOval(rect, paint);
+
+            } else {
+                paint.setStyle(Paint.Style.FILL);
+                RectF rect = new RectF(-SheetMusic.NoteWidth / 2, -SheetMusic.NoteHeight / 2,
+                        -SheetMusic.NoteWidth / 2 + SheetMusic.NoteWidth,
+                        -SheetMusic.NoteHeight / 2 + SheetMusic.NoteHeight - 1);
+                canvas.drawOval(rect, paint);
+                paint.setStyle(Paint.Style.STROKE);
+            }
+
+            paint.setColor(Color.BLACK);
+
+            canvas.rotate(45);
+            canvas.translate(-(xnote + SheetMusic.NoteWidth / 2 + 1),
+                    -(ynote - SheetMusic.LineWidth + SheetMusic.NoteHeight / 2));
+
+            /* Draw a dot if this is a dotted duration. */
+            if (note.duration == NoteDuration.DottedHalf ||
+                    note.duration == NoteDuration.DottedQuarter ||
+                    note.duration == NoteDuration.DottedEighth) {
+
+                RectF rect = new RectF(xnote + SheetMusic.NoteWidth + SheetMusic.LineSpace / 3,
+                        ynote + SheetMusic.LineSpace / 3,
+                        xnote + SheetMusic.NoteWidth + SheetMusic.LineSpace / 3 + 4,
+                        ynote + SheetMusic.LineSpace / 3 + 4);
+                paint.setStyle(Paint.Style.FILL);
+                canvas.drawOval(rect, paint);
+                paint.setStyle(Paint.Style.STROKE);
+            }
+
+            /* Draw horizontal lines if note is above/below the staff */
+            WhiteNote top = topstaff.Add(1);
+            int dist = note.whitenote.Dist(top);
+            int y = ytop - SheetMusic.LineWidth;
+
+            if (dist >= 2) {
+                for (int i = 2; i <= dist; i += 2) {
+                    y -= SheetMusic.NoteHeight;
+                    canvas.drawLine(xnote - SheetMusic.LineSpace / 4, y,
+                            xnote + SheetMusic.NoteWidth + SheetMusic.LineSpace / 4,
+                            y, paint);
+                }
+            }
+
+            WhiteNote bottom = top.Add(-8);
+            y = ytop + (SheetMusic.LineSpace + SheetMusic.LineWidth) * 4 - 1;
+            dist = bottom.Dist(note.whitenote);
+            if (dist >= 2) {
+                for (int i = 2; i <= dist; i += 2) {
+                    y += SheetMusic.NoteHeight;
+                    canvas.drawLine(xnote - SheetMusic.LineSpace / 4, y,
+                            xnote + SheetMusic.NoteWidth + SheetMusic.LineSpace / 4,
+                            y, paint);
+                }
+            }
+            /* End drawing horizontal lines */
+
+        }
+    }
+
 
     /* Draw the accidental symbols.  If two symbols overlap (if they
      * are less than 6 notes apart), we cannot draw the symbol directly
@@ -1045,6 +1201,7 @@ public class ChordSymbol implements MusicSymbol {
     {
         return notedata;
     }
+
 
 
     @Override

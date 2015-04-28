@@ -35,6 +35,10 @@ public class NoteData {
     /**
      * The duration of the note
      */
+    public int expCount;
+    /**
+     * The duration of the note
+     */
     public boolean leftside;
     /**
      * Whether to draw note to the left or right of the stem
@@ -45,7 +49,9 @@ public class NoteData {
     {
         playCount = 0;
         played = false;
+
     }
+
 }
 
 

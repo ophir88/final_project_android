@@ -157,6 +157,44 @@ public class TimeSignature implements Serializable {
             return NoteDuration.ThirtySecond;
     }
 
+    public int GetNoteDurationEights(int duration) {
+        int whole = quarternote * 4;
+
+        /**
+         1       = 32/32
+         3/4     = 24/32
+         1/2     = 16/32
+         3/8     = 12/32
+         1/4     =  8/32
+         3/16    =  6/32
+         1/8     =  4/32 =    8/64
+         triplet         = 5.33/64
+         1/16    =  2/32 =    4/64
+         1/32    =  1/32 =    2/64
+         **/
+
+        if (duration >= 28 * whole / 32)
+            return 8;
+        else if (duration >= 20 * whole / 32)
+            return 8;
+        else if (duration >= 14 * whole / 32)
+            return 5;
+        else if (duration >= 10 * whole / 32)
+            return 4;
+        else if (duration >= 7 * whole / 32)
+            return 3;
+        else if (duration >= 5 * whole / 32)
+            return 3;
+        else if (duration >= 6 * whole / 64)
+            return 2;
+        else if (duration >= 5 * whole / 64)
+            return 1;
+        else if (duration >= 3 * whole / 64)
+            return 1;
+        else
+            return 2;
+    }
+
     /**
      * Convert a note duration into a stem duration.  Dotted durations
      * are converted into their non-dotted equivalents.

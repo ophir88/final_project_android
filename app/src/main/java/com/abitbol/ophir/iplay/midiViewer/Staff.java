@@ -467,6 +467,8 @@ public class Staff {
         /* If there's nothing to unshade, or shade, return */
         if ((starttime > prevPulseTime || endtime < prevPulseTime) &&
                 (starttime > currentPulseTime || endtime < currentPulseTime)) {
+            Log.d("chord" , "return from 1");
+
             return x_shade;
         }
 
@@ -482,6 +484,8 @@ public class Staff {
          * Shade symbols where start <= currentPulseTime < end
          */
         for (int i = 0; i < symbols.size(); i++) {
+            boolean isChord;
+            boolean correct = false;
             curr = symbols.get(i);
             if (curr instanceof BarSymbol) {
                 xpos += curr.getWidth();
@@ -505,19 +509,30 @@ public class Staff {
                 if (x_shade == 0) {
                     x_shade = xpos;
                 }
+                Log.d("chord" , "return from 2");
+
                 return x_shade;
             }
+
+            isChord =  (curr instanceof ChordSymbol)? true : false;
             /* If shaded notes are the same, we're done */
             if ((start <= currentPulseTime) && (currentPulseTime < end) &&
                     (start <= prevPulseTime) && (prevPulseTime < end)) {
-                x_shade = xpos;
-                return x_shade;
+                if(isChord && ((ChordSymbol)curr).read)
+                {
+                    x_shade = xpos;
+                    Log.d("chord" , "return from 3");
+
+                    return x_shade;
+                }
+
             }
 
             boolean redrawLines = false;
 
             /* If symbol is in the previous time, draw a white background */
             if ((start <= prevPulseTime) && (prevPulseTime < end)) {
+
                 canvas.translate(xpos - 2, -2);
                 paint.setStyle(Paint.Style.FILL);
                 paint.setColor(Color.WHITE);
@@ -526,6 +541,8 @@ public class Staff {
                 paint.setColor(Color.BLACK);
                 canvas.translate(-(xpos - 2), 2);
                 canvas.translate(xpos, 0);
+                Log.d("chord" , "sending to Draw, white backGround");
+
                 curr.Draw(canvas, paint, ytop);
                 canvas.translate(-xpos, 0);
 
@@ -534,16 +551,38 @@ public class Staff {
 
             /* If symbol is in the current time, draw a shaded background */
             if ((start <= currentPulseTime) && (currentPulseTime < end)) {
-                if(curr instanceof ChordSymbol)
+                if(isChord)
                 {
                     NoteData[] notes = ((ChordSymbol) curr).getNotedata();
                     for(NoteData note : notes)
                     {
                         note.playCount++;
                         Log.d("chord" , "playing note number: "+ note.number + " played: " + note.playCount + "times");
-                        Log.d("chord" , "note starts at: " + curr.getStartTime()+", for " + note.duration);
+                        Log.d("chord" , note.number + " exp count:  " + note.expCount);
+
+//                        Log.d("chord" , "note starts at: " + curr.getStartTime()+", for " + note.duration);
+                        if(note.playCount >= note.expCount)
+                        {
+                            Log.d("chord" , "count exceeded exp");
+
+                            note.played = true;
+                        }
+                    }
+                    boolean allRead = true;
+                    for(NoteData note : notes)
+                    {
+                        if (!note.played)
+                        {
+                           allRead = false;
+                        }
 
                     }
+                    if(allRead) {
+                        Log.d("chord" , "read the whole chord!");
+                        correct = true;
+                        ((ChordSymbol) curr).read = true;
+                    }
+
                 }
                 x_shade = xpos;
                 canvas.translate(xpos, 0);
@@ -552,7 +591,20 @@ public class Staff {
                 canvas.drawRect(0, 0, curr.getWidth(), this.getHeight(), paint);
                 paint.setStyle(Paint.Style.STROKE);
                 paint.setColor(Color.BLUE);
-                curr.Draw(canvas, paint, ytop);
+                if(isChord)
+                {
+                    ((ChordSymbol) curr).Draw(canvas, paint, ytop, ((ChordSymbol) curr).read , true);
+                    Log.d("chord" , "sending to Draw, gray backGround - color");
+
+                }
+                else
+                {
+                    curr.Draw(canvas, paint, ytop);
+                    Log.d("chord" , "sending to Draw, gray backGround - black");
+
+                }
+
+//                curr.Draw(canvas, paint, ytop);
                 canvas.translate(-xpos, 0);
                 redrawLines = true;
             }
@@ -575,7 +627,10 @@ public class Staff {
 
                 if (prevChord != null) {
                     canvas.translate(prev_xpos, 0);
-                    prevChord.Draw(canvas, paint, ytop);
+                    Log.d("chord" , "sending to Draw, prevChord");
+
+                    prevChord.Draw(canvas, paint, ytop , prevChord.read, false);
+
                     canvas.translate(-prev_xpos, 0);
                 }
                 if (showMeasures) {
@@ -603,11 +658,13 @@ public class Staff {
         {
             if(symbol instanceof ChordSymbol)
             {
+                ((ChordSymbol) symbol).read = false;
                 NoteData[] notes = ((ChordSymbol) symbol).getNotedata();
+
                 for(NoteData note : notes)
                 {
                     note.playCount = 0;
-
+                    note.played = false;
                 }
             }
         }

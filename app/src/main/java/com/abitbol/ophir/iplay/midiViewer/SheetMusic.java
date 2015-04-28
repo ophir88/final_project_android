@@ -972,7 +972,7 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
         if (NoteColors == null) {
             NoteColors = new int[12];
             for (int i = 0; i < 12; i++) {
-                NoteColors[i] = Color.GREEN;
+                NoteColors[i] = Color.BLACK;
             }
         }
         if (newcolors != null) {
