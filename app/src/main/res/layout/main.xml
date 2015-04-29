@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:gravity="center"
-    android:background="@drawable/main_background"
-    >
+    android:background="@drawable/back1">
 
     <Button
         android:id="@+id/choose_song"
@@ -15,7 +13,11 @@
         android:gravity="center"
         android:textSize="24sp"
         android:textStyle="bold"
-        android:textColor="#1E1C1B"
-    />
+        android:textColor="#ffe7e5d9"
+        android:backgroundTint="#ff030303"
+        android:capitalize="words"
+        android:fontFamily="@string/transpose"
+        android:layout_gravity="bottom"
+        android:background="#ff000000" />
     
 </LinearLayout>

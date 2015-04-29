@@ -424,8 +424,7 @@ public class MainActivity extends ActionBarActivity {
                     max = 0;
 
                     for (int i = 0; i < amplitudes.length / 2; i++) {
-                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]
-                              );
+                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i])*i;
                         max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
 
                     }
@@ -451,7 +450,7 @@ public class MainActivity extends ActionBarActivity {
                          * maybe if i checked and there is something bigger ahead, erase the current one!
                          */
                         // check some threshold and close values:
-                        if (finalAmplitudes[i] > 0.0000001
+                        if (finalAmplitudes[i] > 0.0001
                                 && finalAmplitudes[i] > finalAmplitudes[i - 1]
                                 && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
 //                            check for close range
@@ -465,7 +464,7 @@ public class MainActivity extends ActionBarActivity {
 //                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
                                 if(j != 0)
                                 {
-                                    Log.d("DEBUGIS", "[ "+0.1*finalAmplitudes[i]+" ] < [ "+ finalAmplitudes[i + j] + " ]");
+//                                    Log.d("DEBUGIS", "[ "+0.1*finalAmplitudes[i]+" ] < [ "+ finalAmplitudes[i + j] + " ]");
 
                                 }
 
@@ -531,17 +530,27 @@ public class MainActivity extends ActionBarActivity {
 
 
                     String Sfreqs = "";
+                    Log.d("CORRECT", "****************************************");
+                    Log.d("CORRECT", "----------- found frequencies: ---------");
+                    Log.d("CORRECT", "");
+                    Log.d("CORRECT", "");
 
                     for (int i = 0; i < numFinalPeaks; i++) {
+                        Log.d("CORRECT", "note: [ "+PitchConverter.hertzToMidiKey(finalPeaks[i][0]) +" ]  , freq: [ " + finalPeaks[i][0]+ " ] ,  amp: [ "+finalPeaks[i][1]+" ]");
+
                         Sfreqs += " , " + finalPeaks[i][0];
                     }
+                    Log.d("CORRECT", "");
+
+                    Log.d("CORRECT", "****************************************");
+
 //                    final String foundFreqs = Speaks;
                     final String foundFreqsNum = Sfreqs;
 
                     boolean NoteCorrect = false, allCorrect = false;
                     for (int i = 0; i < expNotes.length; i++) {
                         for (int j = 0; j < numFinalPeaks; j++) {
-                            Log.d("CORRECT",PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])) + "  -  " + finalPeaks[j][0]  );
+//                            Log.d("CORRECT",PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])) + "  -  " + finalPeaks[j][0]  );
 
                             if (Math.abs(PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])) - finalPeaks[j][0]) < 2) {
                                 NoteCorrect = true;

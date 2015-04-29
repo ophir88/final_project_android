@@ -1200,6 +1200,11 @@ public class MidiPlayer extends LinearLayout {
 //                    float[] amplitudesDown4 = new float[bufferSize]; // downsample by half
 //                    float[] amplitudesDown5 = new float[bufferSize]; // downsample by half
 
+
+                        for (int i = 0; i < amplitudes.length / 2; i++) {
+                            amplitudes[i] = (amplitudes[i]) * noteDB[i];
+                        }
+
                         for (int i = 0; i < amplitudesDown2.length / 2; i++) {
 
                             amplitudesDown2[i] = amplitudes[i * 2];
@@ -1218,11 +1223,8 @@ public class MidiPlayer extends LinearLayout {
 //                    }
                         max = 0;
                         for (int i = 0; i < amplitudes.length / 2; i++) {
-                            finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]
-                            ) * noteDB[i];
+                            finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]);
                             max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
-
-//                        max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
                         }
 //                    finalAmplitudes = amplitudes;
                         for (int i = 0; i < amplitudes.length / 2; i++) {
@@ -1234,20 +1236,20 @@ public class MidiPlayer extends LinearLayout {
                         for (int i = 1; i < finalAmplitudes.length / 2; i++) {
 
                             // check some threshold and close values:
-                            if (finalAmplitudes[i] > 0.0000001
+                            if (finalAmplitudes[i] > 0.00001
                                     && finalAmplitudes[i] > finalAmplitudes[i - 1]
                                     && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
 //                            check for close range
                                 boolean biggestPeak = true;
                                 // get start index and end index for peak checking:
-                                int stIn = ((i - (int) (10 / fourierCoef)) < 0) ? i : (int) (10 / fourierCoef);
-                                int endIn = ((i + (int) (10 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (10 / fourierCoef);
+                                int stIn = ((i - (int) (15 / fourierCoef)) < 0) ? i : (int) (15 / fourierCoef);
+                                int endIn = ((i + (int) (15 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (15 / fourierCoef);
                                 for (int j = -stIn; j < stIn + endIn; j++) {
-//                                Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
+                                Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
 
                                     if(j!=0)
                                     {
-                                        if (0.6*finalAmplitudes[i] < finalAmplitudes[i + j]) {
+                                        if (0.1*finalAmplitudes[i] < finalAmplitudes[i + j]) {
                                             biggestPeak = false;
                                             break;
                                         }
