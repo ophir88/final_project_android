@@ -73,6 +73,7 @@ public class MainActivity extends ActionBarActivity {
     double windowSizeTime, windowSize; // buffer size in seconds and bits
 
     Activity activity = this;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -127,6 +128,7 @@ public class MainActivity extends ActionBarActivity {
             FFT fft = new FFT(bufferSize);
             //            float[] amplitudes = new float[bufferSize / 2];
             float[] finalAmplitudes = new float[bufferSize];
+            float[] finalAmplitudesBinary = new float[bufferSize];
 
             boolean firstRun = true;
             long startTime;
@@ -405,6 +407,112 @@ public class MainActivity extends ActionBarActivity {
                         amplitudes[i] = (amplitudes[i]) * noteDB[i];
                     }
 
+//                    for (int i = 0; i < amplitudesDown2.length / 2; i++) {
+//
+//                        amplitudesDown2[i] = amplitudes[i * 2];
+//                    }
+//                    for (int i = 0; i < amplitudesDown3.length / 3; i++) {
+//
+//                        amplitudesDown3[i] = amplitudes[i * 3];
+//                    }
+////                    for (int i = 0; i < amplitudesDown3.length / 4; i++) {
+////
+////                        amplitudesDown4[i] = amplitudes[i * 4];
+////                    }
+////                    for (int i = 0; i < amplitudesDown3.length / 5; i++) {
+////
+////                        amplitudesDown5[i] = amplitudes[i * 5];
+////                    }
+//                    max = 0;
+//
+//                    for (int i = 0; i < amplitudes.length / 2; i++) {
+//                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]);
+//                        max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
+//
+//                    }
+
+                    // leave only the peaks:
+
+//                    for (int i = 1; i < amplitudes.length / 2; i++) {
+//
+//
+//                        /**
+//                         * NEXT IDEA:
+//                         * maybe if i checked and there is something bigger ahead, erase the current one!
+//                         */
+//                        // check some threshold and close values:
+//                        if (amplitudes[i] > amplitudes[i - 1]
+//                                && amplitudes[i] > amplitudes[i + 1]) {
+////                            check for close range
+//                            boolean tallest = true;
+//                            // get start index and end index for peak checking:
+//                            int stIn = ((i - (int) (15 / fourierCoef)) < 0) ? i : (int) (15 / fourierCoef);
+//                            int endIn = ((i + (int) (15 / fourierCoef)) > amplitudes.length) ? amplitudes.length - i - 1 : (int) (15 / fourierCoef);
+//                            Log.d("DEBUGIS", "[for the freq: i = " + i + " - " + i * fourierCoef + " ]");
+//
+//                            for (int j = -stIn; j < stIn + endIn; j++) {
+////                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
+//                                if (j != 0) {
+////                                    Log.d("DEBUGIS", "[ "+0.1*finalAmplitudes[i]+" ] < [ "+ finalAmplitudes[i + j] + " ]");
+//
+//                                }
+//                                if (0.3*amplitudes[i] < amplitudes[i + j]) {
+//                                    if (j != 0) {
+//                                        finalAmplitudesBinary[i] = 0;
+//                                        tallest = false;
+//                                        break;
+//                                    }
+//
+//                                }
+//                            }
+//                            if (tallest) {
+//                                finalAmplitudesBinary[i] = 1;
+//                            }
+//                        }
+//                    }
+//                    int[] midiNotesCounter = new int[127];
+//
+//
+//                    for (int i = 0; i < finalAmplitudesBinary.length / 2; i++)
+//                    {
+//
+//                        if(finalAmplitudesBinary[i]==1)
+//                    {
+//                        midiNotesCounter[PitchConverter.hertzToMidiKey(i*fourierCoef)]++;
+//                    }
+//                        if(finalAmplitudesBinary[i*2]==1)
+//                        {
+//                            midiNotesCounter[PitchConverter.hertzToMidiKey(i*2*fourierCoef)]++;
+//                        }
+//                        if(i*3 < finalAmplitudesBinary.length)
+//                        {
+//                            if(finalAmplitudesBinary[i*3]==1)
+//                            {
+//                                midiNotesCounter[PitchConverter.hertzToMidiKey(i*3*fourierCoef)]++;
+//                            }
+//                        }
+//
+//
+//                    }
+//
+//
+//                    Log.d("BINARY", "****************************************");
+//                    Log.d("BINARY", "----------- found frequencies: ---------");
+//                    Log.d("BINARY", "");
+//                    Log.d("BINARY", "");
+//
+//                    for (int i = 0; i < midiNotesCounter.length; i++) {
+//                        if(midiNotesCounter[i]>0)
+//                        {
+//                            Log.d("BINARY", "note: [ " + i + " , counter: " + midiNotesCounter[i]+ " ]");
+//
+//                        }
+//
+//                    }
+//                    Log.d("BINARY", "");
+//
+//                    Log.d("BINARY", "****************************************");
+
                     for (int i = 0; i < amplitudesDown2.length / 2; i++) {
 
                         amplitudesDown2[i] = amplitudes[i * 2];
@@ -424,13 +532,14 @@ public class MainActivity extends ActionBarActivity {
                     max = 0;
 
                     for (int i = 0; i < amplitudes.length / 2; i++) {
-                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i])*i;
+                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]);
                         max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
 
                     }
+
 //                    finalAmplitudes = amplitudes;
                     for (int i = 0; i < amplitudes.length / 2; i++) {
-                        finalAmplitudes[i] /=max;
+                        finalAmplitudes[i] /= max;
                     }
 //                    for (int i = 0; i < numPeaks; i++) {
 //
@@ -458,20 +567,18 @@ public class MainActivity extends ActionBarActivity {
                             // get start index and end index for peak checking:
                             int stIn = ((i - (int) (15 / fourierCoef)) < 0) ? i : (int) (15 / fourierCoef);
                             int endIn = ((i + (int) (15 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (15 / fourierCoef);
-                            Log.d("DEBUGIS", "[for the freq: i = "+i+" - " + i* fourierCoef+" ]");
+                            Log.d("DEBUGIS", "[for the freq: i = " + i + " - " + i * fourierCoef + " ]");
 
                             for (int j = -stIn; j < stIn + endIn; j++) {
 //                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
-                                if(j != 0)
-                                {
+                                if (j != 0) {
 //                                    Log.d("DEBUGIS", "[ "+0.1*finalAmplitudes[i]+" ] < [ "+ finalAmplitudes[i + j] + " ]");
 
                                 }
 
-                                if (0.1*finalAmplitudes[i] < finalAmplitudes[i + j]) {
-                                    if(j != 0)
-                                    {
-                                        finalAmplitudes[i]=0;
+                                if (0.1 * finalAmplitudes[i] < finalAmplitudes[i + j]) {
+                                    if (j != 0) {
+                                        finalAmplitudes[i] = 0;
                                         biggestPeak = false;
                                         break;
                                     }
@@ -487,7 +594,6 @@ public class MainActivity extends ActionBarActivity {
 
                                 numFinalPeaks++;
                             }
-
 
 
                         }
@@ -530,19 +636,19 @@ public class MainActivity extends ActionBarActivity {
 
 
                     String Sfreqs = "";
-                    Log.d("CORRECT", "****************************************");
-                    Log.d("CORRECT", "----------- found frequencies: ---------");
-                    Log.d("CORRECT", "");
-                    Log.d("CORRECT", "");
+//                    Log.d("CORRECT", "****************************************");
+//                    Log.d("CORRECT", "----------- found frequencies: ---------");
+//                    Log.d("CORRECT", "");
+//                    Log.d("CORRECT", "");
 
                     for (int i = 0; i < numFinalPeaks; i++) {
-                        Log.d("CORRECT", "note: [ "+PitchConverter.hertzToMidiKey(finalPeaks[i][0]) +" ]  , freq: [ " + finalPeaks[i][0]+ " ] ,  amp: [ "+finalPeaks[i][1]+" ]");
+//                        Log.d("CORRECT", "note: [ " + PitchConverter.hertzToMidiKey(finalPeaks[i][0]) + " ]  , freq: [ " + finalPeaks[i][0] + " ] ,  amp: [ " + finalPeaks[i][1] + " ]");
 
                         Sfreqs += " , " + finalPeaks[i][0];
                     }
-                    Log.d("CORRECT", "");
+//                    Log.d("CORRECT", "");
 
-                    Log.d("CORRECT", "****************************************");
+//                    Log.d("CORRECT", "****************************************");
 
 //                    final String foundFreqs = Speaks;
                     final String foundFreqsNum = Sfreqs;
@@ -569,14 +675,11 @@ public class MainActivity extends ActionBarActivity {
                             text.setText("notes freqs found: " + foundFreqsNum);
 
                             TextView correctness = (TextView) findViewById(R.id.cor_note);
-                            if(correctFound)
-                            {
+                            if (correctFound) {
                                 correctness.setText("Correct note!");
                                 correctness.setTextColor(Color.GREEN);
 
-                            }
-                            else
-                            {
+                            } else {
                                 correctness.setTextColor(Color.RED);
                                 correctness.setText("wrong note!");
                             }
@@ -638,7 +741,7 @@ public class MainActivity extends ActionBarActivity {
             public void onClick(View v) {
 
                 if (!running) {
-                    final Countdown countdown = new Countdown(BPM ,listenThread , activity );
+                    final Countdown countdown = new Countdown(BPM, listenThread, activity);
                     countdown.start();
                     TextView status_view = (TextView) findViewById(R.id.text_status);
                     status_view.setText("running!");
