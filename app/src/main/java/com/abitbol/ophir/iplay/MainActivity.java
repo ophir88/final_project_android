@@ -122,10 +122,14 @@ public class MainActivity extends ActionBarActivity {
 
             FloatFFT_1D jft = new FloatFFT_1D(bufferSize);
 
+            HannWindow hann = new HannWindow();
+            float[]  hannWindow = hann.generateCurve(bufferSize);
+
+
             float[] amplitudes = new float[bufferSize];
 
 
-            FFT fft = new FFT(bufferSize);
+//            FFT fft = new FFT(bufferSize , new HannWindow());
             //            float[] amplitudes = new float[bufferSize / 2];
             float[] finalAmplitudes = new float[bufferSize];
             float[] finalAmplitudesBinary = new float[bufferSize];
@@ -209,7 +213,8 @@ public class MainActivity extends ActionBarActivity {
 
                 // get event
                 float[] audioFloatBuffer = audioEvent.getFloatBuffer();
-                float[] envelope = audioFloatBuffer;
+//                float[] envelope = audioFloatBuffer;
+
 
                 boolean silence = silenceDetector.isSilence(audioFloatBuffer);
 
@@ -329,8 +334,14 @@ public class MainActivity extends ActionBarActivity {
 //                    if (maxAmp > 0.1) {
                     Log.d("max amp", "max: " + maxAmp);
                     // set variables
-                    float SR = audioEvent.getSampleRate();
-                    int BS = audioEvent.getBufferSize();
+//                    float SR = audioEvent.getSampleRate();
+//                    int BS = audioEvent.getBufferSize();
+
+
+//                     apply hanning:
+                    for(int i = 0 ; i < audioFloatBuffer.length ; i++){
+                        audioFloatBuffer[i] = audioFloatBuffer[i] * hannWindow[i];
+                    }
 
                     float[] transformbuffer = new float[bufferSize * 2];
 
@@ -338,8 +349,12 @@ public class MainActivity extends ActionBarActivity {
                             audioFloatBuffer.length);
 
                     jft.realForward((float[]) transformbuffer);
+
+
 //                    jft.realForward(transformbuffer);
                     amplitudes = transformbuffer;
+
+//                    20 × log10(F(x) + 1)
 
                     // create fourier
 //                    fft.forwardTransform(transformbuffer);
@@ -355,6 +370,7 @@ public class MainActivity extends ActionBarActivity {
 
                     for (int i = 0; i < amplitudes.length / 2; i++) {
                         amplitudes[i] = amplitudes[i] * amplitudes[i];
+                        amplitudes[i] = (float) (20.0*Math.log10(((double) (amplitudes[i] + 1))));
 //                        max = (max < amplitudes[i]) ? amplitudes[i] : max;
                     }
                     Log.d("max spec amp", "spec max: " + max);
@@ -559,7 +575,7 @@ public class MainActivity extends ActionBarActivity {
                          * maybe if i checked and there is something bigger ahead, erase the current one!
                          */
                         // check some threshold and close values:
-                        if (finalAmplitudes[i] > 0.0001
+                        if (finalAmplitudes[i] > 0.001
                                 && finalAmplitudes[i] > finalAmplitudes[i - 1]
                                 && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
 //                            check for close range
@@ -567,7 +583,7 @@ public class MainActivity extends ActionBarActivity {
                             // get start index and end index for peak checking:
                             int stIn = ((i - (int) (15 / fourierCoef)) < 0) ? i : (int) (15 / fourierCoef);
                             int endIn = ((i + (int) (15 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (15 / fourierCoef);
-                            Log.d("DEBUGIS", "[for the freq: i = " + i + " - " + i * fourierCoef + " ]");
+                            Log.d("DEBUGIS", "[for the freq: i = " + i + " - " + i * fourierCoef + ", amp: "+finalAmplitudes[i]+" ]");
 
                             for (int j = -stIn; j < stIn + endIn; j++) {
 //                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
@@ -644,7 +660,7 @@ public class MainActivity extends ActionBarActivity {
                     for (int i = 0; i < numFinalPeaks; i++) {
 //                        Log.d("CORRECT", "note: [ " + PitchConverter.hertzToMidiKey(finalPeaks[i][0]) + " ]  , freq: [ " + finalPeaks[i][0] + " ] ,  amp: [ " + finalPeaks[i][1] + " ]");
 
-                        Sfreqs += " , " + finalPeaks[i][0];
+                        Sfreqs += " , " + Math.round(finalPeaks[i][0]);
                     }
 //                    Log.d("CORRECT", "");
 
@@ -857,7 +873,7 @@ public class MainActivity extends ActionBarActivity {
 
             Log.d("midi", "tempo: " + 60000000 / options.tempo);
 
-            windowSizeTime = 60 / (2 * (double) BPM);
+            windowSizeTime = 60 / (4 * (double) BPM);
             windowSize = Math.round(windowSizeTime * SR);
             Log.d("midi", "tempo , windowSizeTime, windowSize: " + BPM + " , " + windowSizeTime + " , " + windowSize);
             MidiTrack track = MidiFile.CombineToSingleTrack(mfile.getTracks());
