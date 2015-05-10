@@ -9,14 +9,22 @@ import java.util.List;
 public class Peak {
 
 
-    private List<Integer> nm = new ArrayList<Integer>();
+    private List<NoteMultiple> nm = new ArrayList<NoteMultiple>();
+    public int location;
+    public float amplitude;
 
-    public void add(int nm)
+    public Peak(int loc , float amplitude)
+    {
+        location = loc;
+
+       this.amplitude = amplitude;
+    }
+    public void add(NoteMultiple nm)
     {
         this.nm.add(nm);
     }
 
-    public List<Integer> getList ()
+    public List<NoteMultiple> getList ()
     {
         return nm;
     }
