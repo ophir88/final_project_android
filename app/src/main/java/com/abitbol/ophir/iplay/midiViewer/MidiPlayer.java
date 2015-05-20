@@ -36,6 +36,7 @@ import be.tarsos.dsp.AudioEvent;
 import be.tarsos.dsp.AudioProcessor;
 import be.tarsos.dsp.SilenceDetector;
 import be.tarsos.dsp.io.android.AudioDispatcherFactory;
+import be.tarsos.dsp.util.PitchConverter;
 import be.tarsos.dsp.util.fft.FFT;
 
 
@@ -68,6 +69,15 @@ import be.tarsos.dsp.util.fft.FFT;
  * and determines which notes to shade.
  */
 public class MidiPlayer extends LinearLayout {
+
+    public final static int PEAK_LOC = 0;
+    public final static int PEAK_FREQ = 1;
+    public final static int PEAK_AMP = 2;
+    public final static int PEAK_NOTE = 3;
+    public final static int PEAK_FUNDAMENTAL = 4;
+    public final static int MAX_PEAKS = 60;
+    final float thresh = (float) 0.01;
+
 
     Countdown countdown;
     Activity activity;
@@ -881,7 +891,7 @@ public class MidiPlayer extends LinearLayout {
      * the stop or pause button), then stop the timer.
      */
     public class callBack implements Runnable {
-        double[][] finalPeaks;
+        float[][] finalPeaks;
         double currentTime;
         double currentPulseTime;
 
@@ -889,7 +899,7 @@ public class MidiPlayer extends LinearLayout {
             currentPulseTime = 0;
         }
 
-        public void setPeaks(double[][] finalPeaks, double time, boolean silence) {
+        public void setPeaks(float[][] finalPeaks, double time, boolean silence) {
             this.finalPeaks = finalPeaks;
             currentTime = time;
         }
@@ -993,7 +1003,7 @@ public class MidiPlayer extends LinearLayout {
             mfile = midifile;
             getTempo();
             bufferSize = (int) windowSize;
-            fourierCoef = SR / (2 * (windowSize));
+            fourierCoef = SR / ((windowSize));
             final getNote gtNt = new getNote(bufferSize, fourierCoef);
             noteDB = gtNt.getNotes();
             this.callback = callback;
@@ -1016,7 +1026,7 @@ public class MidiPlayer extends LinearLayout {
             BPM = 60000000 / options.tempo;
             PPQ = mfile.returnPPQ();
             p2s = 60000 / (double) ((BPM * PPQ));
-            windowSizeTime = 60 / (4 * (double) BPM);
+            windowSizeTime = 60 / (2 * (double) BPM);
             windowSize = Math.round(windowSizeTime * SR);
 //                Log.d("midi", "tempo , windowSizeTime, windowSize: " + BPM + " , " + windowSizeTime + " , " + windowSize);
 
@@ -1033,6 +1043,11 @@ public class MidiPlayer extends LinearLayout {
                 FloatFFT_1D jft = new FloatFFT_1D(bufferSize);
 
                 float[] amplitudes = new float[bufferSize];
+                float[] amplitudesDerivative = new float[bufferSize];
+                float[][] possiblePeaks;
+                float[][] foundPeaks;
+
+                float[] phase = new float[bufferSize];
                 double[][] finalPeaks;
                 double[][] finalizedPeaks;
                 FFT fft = new FFT(bufferSize);
@@ -1090,231 +1105,231 @@ public class MidiPlayer extends LinearLayout {
                     // if it isn't silent:
                     if (!silence) {
 
-////               ===============================================================
-////               ========================  Envelope  ===========================
-////               ===============================================================
+//////               ===============================================================
+//////               ========================  Envelope  ===========================
+//////               ===============================================================
+////
+////                    int peakwindowsize = 206;
+////                    double average = 0.0;
+////                    float tempMax = 0;
+////                    for (int i = 0; i < envelope.length - peakwindowsize; i++) {
+////
+////                        average += envelope[i];
+////                        tempMax = 0;
+////                        for (int j = i; j < i + peakwindowsize; j++) {
+////                            tempMax = (tempMax < envelope[j]) ? envelope[j] : tempMax;
+////                        }
+////                        envelope[i] = tempMax;
+////                    }
+////                    for (int i = envelope.length - peakwindowsize; i < envelope.length; i++) {
+////                        average += envelope[i];
+////                        tempMax = 0;
+////                        for (int j = i - peakwindowsize; j < i; j++) {
+////                            tempMax = (tempMax < audioFloatBuffer[j]) ? audioFloatBuffer[j] : tempMax;
+////                        }
+////                        envelope[i] = tempMax;
+////                    }
+////                    average /= envelope.length;
+////
+//////               ===============================================================
+//////               ========================  find peaks  =========================
+//////               ===============================================================
+////
+////
+//////               *-*-*-*-*-*-*-*- variables *-*-*-*-*-*-*-*-
+////                    int[]ampPeak = new int[2]; // up to two peaks in a buffer:
+////                    int peakIdx = 0;
+////                    boolean inPeak = false, continuousNote = false;
+////
+////                    int peakStartLoc = 0;
+////                    int peakEndLoc = 0;
+////
+////                    double thresh = average;
+////                    for (int i = 0; i < envelope.length; i++) {
+////
+////                        if (!inPeak) { // if we aren't in a peaks
+////                            if (envelope[i] > thresh) { // and the amplitude is higher than average
+////                                inPeak = true; // then we start a peak
+////                                peakStartLoc = i;
+////                            }
+////                        } else {
+////                            if (envelope[i] < thresh) { // and the amplitude is higher than average
+////                                inPeak = false; // then we start a peak
+////                                peakEndLoc = i;
+////
+////                                if (peakEndLoc - peakStartLoc > windowSize / 4) {
+////                                    ampPeak[PEAK_START] = peakStartLoc;
+////                                    ampPeak[PEAK_END] = peakStartLoc;
+//////                                    peakIdx++;
+////                                }
+////
+////                            }
+////                        }
+////
+////
+////                    }
+////
+////                    if(inPeak && peakStartLoc<windowSize*7/8)
+////                    {
+////                        ampPeak[PEAK_START] = peakStartLoc;
+////                        ampPeak[1] = (int)windowSize-1;
+////                        continuousNote = true;
+////                    }
 //
-//                    int peakwindowsize = 206;
-//                    double average = 0.0;
-//                    float tempMax = 0;
-//                    for (int i = 0; i < envelope.length - peakwindowsize; i++) {
+//                        float maxAmp = 0;
 //
-//                        average += envelope[i];
-//                        tempMax = 0;
-//                        for (int j = i; j < i + peakwindowsize; j++) {
-//                            tempMax = (tempMax < envelope[j]) ? envelope[j] : tempMax;
+//
+//                        // perform the fourier transofrm:
+//                        float[] transformbuffer = new float[bufferSize * 2];
+//
+//                        System.arraycopy(audioFloatBuffer, 0, transformbuffer, 0,
+//                                audioFloatBuffer.length);
+//
+//                        jft.realForward((float[]) transformbuffer);
+////                    jft.realForward(transformbuffer);
+//                        amplitudes = transformbuffer;
+//
+//
+////                 find peaks:
+//                        float max = 0;
+//                        float freq = 0;
+//                        int numPeaks = 0;
+//
+//
+//                        for (int i = 0; i < amplitudes.length / 2; i++) {
+//                            amplitudes[i] = amplitudes[i] * amplitudes[i];
+//                            amplitudes[i] = (amplitudes[i]) * noteDB[i];
+//                            max = (max < amplitudes[i]) ? amplitudes[i] : max;
+//
+////                        max = (max < amplitudes[i]) ? amplitudes[i] : max;
 //                        }
-//                        envelope[i] = tempMax;
-//                    }
-//                    for (int i = envelope.length - peakwindowsize; i < envelope.length; i++) {
-//                        average += envelope[i];
-//                        tempMax = 0;
-//                        for (int j = i - peakwindowsize; j < i; j++) {
-//                            tempMax = (tempMax < audioFloatBuffer[j]) ? audioFloatBuffer[j] : tempMax;
-//                        }
-//                        envelope[i] = tempMax;
-//                    }
-//                    average /= envelope.length;
 //
-////               ===============================================================
-////               ========================  find peaks  =========================
-////               ===============================================================
+////                        *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+////                        *-*-*-*-*-*-*-*-* Matlab Addon*-*-*-*-*-*-*-*-*-*-
+////                        *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+////
+//                        finalizedPeaks = new double[100][2];
+//
+//                        double[][] peaks = new double[100][3];
+//                        float[] matlabAlgo = amplitudes;
+//                        boolean minorPeak = false;
+//                        int peakIdx = 0;
+//                        for (int i = 0; i < matlabAlgo.length / 2; i++) {
+//                            matlabAlgo[i] /=max;
+//                            if (matlabAlgo[i] > 0.01
+//                                    && matlabAlgo[i] > matlabAlgo[i - 1]
+//                                    && matlabAlgo[i] > matlabAlgo[i + 1]) {
+//                                if (peakIdx > 0) {
+//                                    double n = 12 * Math.log(peaks[peakIdx - 1][1] / 440) + 49;
+//                                    double nextNote = Math.pow(2, (n - 48) / 12) * 440;
+//                                    int diff = (int) (nextNote - peaks[peakIdx - 1][1]);
 //
 //
-////               *-*-*-*-*-*-*-*- variables *-*-*-*-*-*-*-*-
-//                    int[]ampPeak = new int[2]; // up to two peaks in a buffer:
-//                    int peakIdx = 0;
-//                    boolean inPeak = false, continuousNote = false;
+//                                    if (Math.abs((i) * fourierCoef - peaks[peakIdx - 1][0]) < diff * 0.7) {
+//                                        if (matlabAlgo[i] > peaks[peakIdx - 1][1]) {
+//                                            peakIdx--;
+//                                        } else {
+//                                            minorPeak = true;
+//                                        }
+//                                    }
 //
-//                    int peakStartLoc = 0;
-//                    int peakEndLoc = 0;
+//                                }
 //
-//                    double thresh = average;
-//                    for (int i = 0; i < envelope.length; i++) {
 //
-//                        if (!inPeak) { // if we aren't in a peaks
-//                            if (envelope[i] > thresh) { // and the amplitude is higher than average
-//                                inPeak = true; // then we start a peak
-//                                peakStartLoc = i;
+//                                if(!minorPeak)
+//                                {
+//                                    double newFreq = i*fourierCoef;
+//
+//                                    // limits for search:
+//                                    double n = 12 * Math.log(i*fourierCoef / 440) + 49;
+//                                    double nextNote = Math.pow(2, (n - 47) / 12) * 440;
+//                                    double prevNote = Math.pow(2, (n - 51) / 12) * 440;
+//                                   int prevI = Math.round((float) (prevNote/(fourierCoef*2)));
+//                                   int nextI = Math.round((float)  (nextNote/(fourierCoef*2)));
+//
+//                                    if(i>10 && (i+10)<matlabAlgo.length)
+//                                    {
+//                                        double tmepAv = 0;
+//                                        int tempCount = 0;
+//                                        for (int avIdx = prevI ; avIdx< i-2 ; avIdx++)
+//                                        {
+//
+//                                            if(matlabAlgo[avIdx]>0)
+//                                            {
+//                                                tmepAv+= matlabAlgo[avIdx];
+//                                                tempCount++;
+//                                            }
+//                                        }
+//                                        for (int avIdx = i+3 ; avIdx< nextI ; avIdx++)
+//                                        {
+//
+//                                            if(matlabAlgo[avIdx]>0)
+//                                            {
+//                                                tmepAv+= matlabAlgo[avIdx];
+//                                                tempCount++;
+//                                            }
+//                                        }
+//
+//                                        tmepAv /=tempCount;
+//                                        double ratio = (tempCount>0)?matlabAlgo[i]/tmepAv:0;
+//                                        peaks[peakIdx][0] = newFreq;
+//                                        peaks[peakIdx][1] = i;
+//                                        peaks[peakIdx][2] = ratio;
+//                                        peakIdx++;
+//                                    }
+//
+//                                }
+//
+//
+//
+//
+//
+//
 //                            }
-//                        } else {
-//                            if (envelope[i] < thresh) { // and the amplitude is higher than average
-//                                inPeak = false; // then we start a peak
-//                                peakEndLoc = i;
+//                            if(peakIdx>60)
+//                            {
+//                                break;
+//                            }
+//                        }
 //
-//                                if (peakEndLoc - peakStartLoc > windowSize / 4) {
-//                                    ampPeak[PEAK_START] = peakStartLoc;
-//                                    ampPeak[PEAK_END] = peakStartLoc;
-////                                    peakIdx++;
+//
+//
+////                        get peak average:
+//                        int numOfPeaks = 0;
+//                        double peakAverage = 0;
+//
+//                        for (int i = 0 ; i<peakIdx ; i++)
+//                        {
+//                            peakAverage+=peaks[i][1];
+//                        }
+//                        peakAverage/=(peakIdx-1);
+//
+//                        int finalizedPeaksIdx= 0;
+//                        for (int i = 0 ; i<peakIdx ; i++)
+//                        {
+//                            if(peaks[i][2]>peakAverage)
+//                            {
+//                                for (int j = 0 ; i<peakIdx ; i++)
+//                                {
+//                                    if(((Math.abs(peaks[i][0] - peaks[j][0]/2)<5) && peaks[j][1]>peakAverage/4 )||
+//                                            ((Math.abs(peaks[i][0] - peaks[j][0]/2)<5) && peaks[j][2]/10>0.4 ))
+//                                    {
+//                                        if(peaks[i][3]/10<0.4)
+//                                        {
+//                                            finalizedPeaks[finalizedPeaksIdx][0]=peaks[i][0];
+//                                            finalizedPeaks[finalizedPeaksIdx][1]=1;
+//                                        }
+//                                        else
+//                                        {
+//                                            finalizedPeaks[finalizedPeaksIdx][0]=peaks[i][0];
+//                                            finalizedPeaks[finalizedPeaksIdx][1]=0;
+//                                        }
+//                                        finalizedPeaksIdx++;
+//                                    }
 //                                }
 //
 //                            }
 //                        }
-//
-//
-//                    }
-//
-//                    if(inPeak && peakStartLoc<windowSize*7/8)
-//                    {
-//                        ampPeak[PEAK_START] = peakStartLoc;
-//                        ampPeak[1] = (int)windowSize-1;
-//                        continuousNote = true;
-//                    }
-
-                        float maxAmp = 0;
-
-
-                        // perform the fourier transofrm:
-                        float[] transformbuffer = new float[bufferSize * 2];
-
-                        System.arraycopy(audioFloatBuffer, 0, transformbuffer, 0,
-                                audioFloatBuffer.length);
-
-                        jft.realForward((float[]) transformbuffer);
-//                    jft.realForward(transformbuffer);
-                        amplitudes = transformbuffer;
-
-
-//                 find peaks:
-                        float max = 0;
-                        float freq = 0;
-                        int numPeaks = 0;
-
-
-                        for (int i = 0; i < amplitudes.length / 2; i++) {
-                            amplitudes[i] = amplitudes[i] * amplitudes[i];
-                            amplitudes[i] = (amplitudes[i]) * noteDB[i];
-                            max = (max < amplitudes[i]) ? amplitudes[i] : max;
-
-//                        max = (max < amplitudes[i]) ? amplitudes[i] : max;
-                        }
-
-//                        *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-//                        *-*-*-*-*-*-*-*-* Matlab Addon*-*-*-*-*-*-*-*-*-*-
-//                        *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-//
-                        finalizedPeaks = new double[100][2];
-
-                        double[][] peaks = new double[100][3];
-                        float[] matlabAlgo = amplitudes;
-                        boolean minorPeak = false;
-                        int peakIdx = 0;
-                        for (int i = 0; i < matlabAlgo.length / 2; i++) {
-                            matlabAlgo[i] /=max;
-                            if (matlabAlgo[i] > 0.01
-                                    && matlabAlgo[i] > matlabAlgo[i - 1]
-                                    && matlabAlgo[i] > matlabAlgo[i + 1]) {
-                                if (peakIdx > 0) {
-                                    double n = 12 * Math.log(peaks[peakIdx - 1][1] / 440) + 49;
-                                    double nextNote = Math.pow(2, (n - 48) / 12) * 440;
-                                    int diff = (int) (nextNote - peaks[peakIdx - 1][1]);
-
-
-                                    if (Math.abs((i) * fourierCoef - peaks[peakIdx - 1][0]) < diff * 0.7) {
-                                        if (matlabAlgo[i] > peaks[peakIdx - 1][1]) {
-                                            peakIdx--;
-                                        } else {
-                                            minorPeak = true;
-                                        }
-                                    }
-
-                                }
-
-
-                                if(!minorPeak)
-                                {
-                                    double newFreq = i*fourierCoef;
-
-                                    // limits for search:
-                                    double n = 12 * Math.log(i*fourierCoef / 440) + 49;
-                                    double nextNote = Math.pow(2, (n - 47) / 12) * 440;
-                                    double prevNote = Math.pow(2, (n - 51) / 12) * 440;
-                                   int prevI = Math.round((float) (prevNote/(fourierCoef*2)));
-                                   int nextI = Math.round((float)  (nextNote/(fourierCoef*2)));
-
-                                    if(i>10 && (i+10)<matlabAlgo.length)
-                                    {
-                                        double tmepAv = 0;
-                                        int tempCount = 0;
-                                        for (int avIdx = prevI ; avIdx< i-2 ; avIdx++)
-                                        {
-
-                                            if(matlabAlgo[avIdx]>0)
-                                            {
-                                                tmepAv+= matlabAlgo[avIdx];
-                                                tempCount++;
-                                            }
-                                        }
-                                        for (int avIdx = i+3 ; avIdx< nextI ; avIdx++)
-                                        {
-
-                                            if(matlabAlgo[avIdx]>0)
-                                            {
-                                                tmepAv+= matlabAlgo[avIdx];
-                                                tempCount++;
-                                            }
-                                        }
-
-                                        tmepAv /=tempCount;
-                                        double ratio = (tempCount>0)?matlabAlgo[i]/tmepAv:0;
-                                        peaks[peakIdx][0] = newFreq;
-                                        peaks[peakIdx][1] = i;
-                                        peaks[peakIdx][2] = ratio;
-                                        peakIdx++;
-                                    }
-
-                                }
-
-
-
-
-
-
-                            }
-                            if(peakIdx>60)
-                            {
-                                break;
-                            }
-                        }
-
-
-
-//                        get peak average:
-                        int numOfPeaks = 0;
-                        double peakAverage = 0;
-
-                        for (int i = 0 ; i<peakIdx ; i++)
-                        {
-                            peakAverage+=peaks[i][1];
-                        }
-                        peakAverage/=(peakIdx-1);
-
-                        int finalizedPeaksIdx= 0;
-                        for (int i = 0 ; i<peakIdx ; i++)
-                        {
-                            if(peaks[i][2]>peakAverage)
-                            {
-                                for (int j = 0 ; i<peakIdx ; i++)
-                                {
-                                    if(((Math.abs(peaks[i][0] - peaks[j][0]/2)<5) && peaks[j][1]>peakAverage/4 )||
-                                            ((Math.abs(peaks[i][0] - peaks[j][0]/2)<5) && peaks[j][2]/10>0.4 ))
-                                    {
-                                        if(peaks[i][3]/10<0.4)
-                                        {
-                                            finalizedPeaks[finalizedPeaksIdx][0]=peaks[i][0];
-                                            finalizedPeaks[finalizedPeaksIdx][1]=1;
-                                        }
-                                        else
-                                        {
-                                            finalizedPeaks[finalizedPeaksIdx][0]=peaks[i][0];
-                                            finalizedPeaks[finalizedPeaksIdx][1]=0;
-                                        }
-                                        finalizedPeaksIdx++;
-                                    }
-                                }
-
-                            }
-                        }
 
 //
 //
@@ -1487,9 +1502,207 @@ public class MidiPlayer extends LinearLayout {
 //                        }
 //                    });
 //                    }
+                        float maxAmp = 0;
+//                    for (int j = 0; j < audioFloatBuffer.length; j++) {
+//                        maxAmp = (maxAmp < audioFloatBuffer[j]) ? audioFloatBuffer[j] : maxAmp;
+//
+//                    }
+
+//                    if (maxAmp > 0.1) {
+                        Log.d("max amp", "max: " + maxAmp);
+
+
+                        float[] transformbuffer = new float[bufferSize * 2];
+
+                        System.arraycopy(audioFloatBuffer, 0, transformbuffer, 0,
+                                audioFloatBuffer.length);
+
+
+                        fft.powerPhaseFFT(transformbuffer, amplitudes, phase);
+
+
+
+
+                        float max = 0;
+
+//                    first filter
+                        for (int i = 0; i < amplitudes.length / 2; i++) {
+                            amplitudes[i] = (amplitudes[i]) * noteDB[i];
+                        }
+
+
+                        // Log used as debug
+                        File log = new File(Environment.getExternalStorageDirectory(), "buffer.txt");
+                        Log.d("buffer", "path: " + log.getAbsolutePath());
+                        try {
+                            BufferedWriter out = new BufferedWriter(new FileWriter(log.getAbsolutePath(), true));
+                            out.write("buffer: \n");
+
+                            for (int i = 1; i < amplitudes.length / 2; ++i) {
+                                out.write(amplitudes[i] + "\n");
+
+                            }
+                            out.close();
+                        } catch (Exception e) {
+                            Log.e("buffer", "Error opening Log.", e);
+                        }
+
+//                    derivate:
+
+                        for (int i = 1; i < amplitudes.length / 2; i++) {
+                            amplitudesDerivative[i] = amplitudes[i] - amplitudes[i - 1];
+//                        erase negative values:
+                            if (amplitudesDerivative[i] < 0) {
+                                amplitudesDerivative[i] = 0;
+                            }
+                            // remember maxium value for normalization
+                            max = (max < amplitudesDerivative[i]) ? amplitudesDerivative[i] : max;
+
+                        }
+                        amplitudes = amplitudesDerivative;
+
+//                    normalize to 1:
+                        for (int i = 0; i < amplitudes.length / 2; i++) {
+                            amplitudes[i] /= max;
+                        }
+                        /**
+                         * this will hold the possible peaks:
+                         * 0 = location;
+                         * 1 = frequency
+                         * 2 = amplitude
+                         */
+                        possiblePeaks = new float[MAX_PEAKS][3];
+                        int peakCounter = 0;
+                        boolean full = false;
+                        boolean minorPeak;
+                        for (int i = 1; i < amplitudes.length / 2; i++) {
+                            minorPeak = false; //   restart bool:
+
+                            // find peaks:
+                            if (amplitudes[i] > thresh
+                                    && amplitudes[i] > amplitudes[i - 1]
+                                    && amplitudes[i] > amplitudes[i + 1]) {
+
+                                // check for close range peaks:
+                                if (peakCounter > 0) {
+                                    float lastFreq = possiblePeaks[peakCounter - 1][PEAK_FREQ];
+                                    double n = 12 * Math.log((lastFreq / 400)) + 49;
+                                    // find the next note in relation to the previous peak
+                                    double nextNote = Math.pow(2, (n - 48) / 12) * 440;
+//                                   frequency between them:
+                                    double diff = nextNote - lastFreq;
+
+//                                    if the actual difference is less than diff, find the bigger one:
+                                    if (Math.abs(i * fourierCoef - lastFreq) < diff * 0.7) {
+                                        if (amplitudes[i] > possiblePeaks[peakCounter - 1][PEAK_AMP]) {
+                                            peakCounter--;
+                                        } else {
+                                            minorPeak = true;
+                                        }
+                                    }
+
+                                }
+
+                                if (!minorPeak) {
+
+
+                                    possiblePeaks[peakCounter][PEAK_LOC] = i;
+                                    possiblePeaks[peakCounter][PEAK_FREQ] = (float) (i * fourierCoef);
+                                    possiblePeaks[peakCounter][PEAK_AMP] = amplitudes[i];
+                                    peakCounter++;
+                                }
+                            }
+
+                            if (peakCounter >= 60) {
+                                break;
+                            }
+                        }
+//                    find the peak average:
+                        float peakAverage = 0;
+                        int numOfPeaks = 0;
+                        for (int i = 0; i < peakCounter; i++) {
+                            if (possiblePeaks[i][PEAK_AMP] > 0) {
+                                peakAverage += possiblePeaks[i][PEAK_AMP] * possiblePeaks[i][PEAK_AMP];
+                                numOfPeaks++;
+                            }
+                        }
+                        peakAverage /= numOfPeaks;
+
+
+
+                        float[] tempSolution = amplitudes;
+                        foundPeaks = new float[peakCounter][7];
+                        int foundCounter = 0;
+                        boolean foundSecond;
+                        for (int i = 0; i < peakCounter; i++) {
+
+                            foundSecond = false;
+                            // look for peak with amp thresh:
+                            if (possiblePeaks[i][PEAK_FREQ] < 2500 && possiblePeaks[i][PEAK_AMP] > peakAverage * 0.75) {
+
+                                // look for second harmony
+                                for (int j = i + 1; j < peakCounter; j++) {
+                                    if (!foundSecond) {
+                                        if ((PitchConverter.hertzToMidiKey((double) possiblePeaks[i][PEAK_FREQ]) == PitchConverter.hertzToMidiKey((double) (possiblePeaks[j][PEAK_FREQ] / 2))
+                                                && possiblePeaks[j][PEAK_AMP] > peakAverage / 10)) {
+
+
+
+                                            //get surrounding average:
+                                            float average = getAverage((int) possiblePeaks[i][PEAK_LOC], tempSolution, fourierCoef);
+
+//                                    get ratio:
+                                            float ratio = possiblePeaks[i][PEAK_AMP] / average;
+
+
+                                            if (ratio >= 3) {
+//                                        add to found peaks:
+
+                                                foundPeaks[foundCounter][PEAK_LOC] = possiblePeaks[i][PEAK_LOC];
+                                                foundPeaks[foundCounter][PEAK_AMP] = possiblePeaks[i][PEAK_AMP];
+                                                foundPeaks[foundCounter][PEAK_FREQ] = possiblePeaks[i][PEAK_FREQ];
+                                                foundPeaks[foundCounter][PEAK_NOTE] = PitchConverter.hertzToMidiKey((double) possiblePeaks[i][PEAK_FREQ]);
+                                                foundPeaks[foundCounter][PEAK_FUNDAMENTAL] = 0;
+
+
+                                                foundCounter++;
+
+//                                      erase the 2nd harmony from the solution:
+                                                tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 - 2)] = 0;
+                                                tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 - 1)] = 0;
+                                                tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2)] = 0;
+                                                tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 + 1)] = 0;
+                                                tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 + 2)] = 0;
+                                                foundSecond = true;
+                                            }
+
+                                        }
+                                    }
+                                    else
+                                    {
+                                        break;
+                                    }
+
+
+                                }
+                            }
+
+
+                        }
+
+                        // look for third harmonic
+                        for (int i = 0; i < foundCounter; i++) {
+
+                            for (int j = i + 1; j < foundCounter; j++) {
+                                if (foundPeaks[i][PEAK_NOTE] % 12 == foundPeaks[j][PEAK_NOTE] % 12) {
+                                    foundPeaks[i][PEAK_FUNDAMENTAL]++;
+                                }
+                            }
+                        }
+
                     }
 
-                    callback.setPeaks(finalizedPeaks, timeElapsed / p2s, silence);
+                    callback.setPeaks(foundPeaks, timeElapsed / p2s, silence);
                     callback.run();
 
 //                runOnUiThread(new Runnable() {
@@ -1511,6 +1724,42 @@ public class MidiPlayer extends LinearLayout {
             return fftProcessor;
         }
 
+
+    }
+
+    private float getAverage(int location, float[] tempSoltuion, double fourierCoef) {
+
+        double n = 12 * (Math.log((location * fourierCoef / 440))/Math.log(2)) + 49;
+
+        // find the next note in relation to the previous peak
+        double nextNote = (Math.pow(2, (n - 46) / 12)) * 440;
+        double prevNote = (Math.pow(2, (n - 52) / 12)) * 440;
+
+        int prevI = (int) Math.round(prevNote / (fourierCoef));
+        int nextI = (int) Math.round(nextNote / (fourierCoef));
+
+        float tempAv = 0;
+        float tempCount = 0;
+        if (location > 10 && (location + 10) < tempSoltuion.length) {
+
+
+//            average left of peak
+            for (int i = prevI; i <= location ; i++) {
+                if (tempSoltuion[i] > 0.005) {
+                    tempAv += tempSoltuion[i];
+                    tempCount++;
+                }
+            }
+            //            average right of peak
+            for (int i = location + 3; i <= nextI; i++) {
+                if (tempSoltuion[i] > 0.005) {
+                    tempAv += tempSoltuion[i];
+                    tempCount++;
+                }
+            }
+        }
+        tempAv /= tempCount;
+        return tempAv;
 
     }
 

@@ -29,6 +29,7 @@ import android.util.Log;
 public class ChordSymbol implements MusicSymbol {
 
     public boolean read;
+    public boolean extraNotes;
 
     private Clef clef;
     /**
@@ -570,7 +571,7 @@ public class ChordSymbol implements MusicSymbol {
      *
      * @param ytop The ylocation (in pixels) where the top of the staff starts.
      */
-    public void Draw(Canvas canvas, Paint paint, int ytop, boolean correctNote, boolean beingPlayed) {
+    public void Draw(Canvas canvas, Paint paint, int ytop, boolean correctNote, boolean beingPlayed,  boolean extraNotes) {
         paint.setStyle(Paint.Style.STROKE);
 
         /* Align the chord to the right */
@@ -582,7 +583,7 @@ public class ChordSymbol implements MusicSymbol {
 
         /* Draw the notes */
         canvas.translate(xpos, 0);
-        DrawNotes(canvas, paint, ytop, topstaff, correctNote, beingPlayed);
+        DrawNotes(canvas, paint, ytop, topstaff, correctNote, beingPlayed , extraNotes);
 
         if (sheetmusic != null && sheetmusic.getShowNoteLetters() != 0) {
             DrawNoteLetters(canvas, paint, ytop, topstaff);
@@ -598,7 +599,7 @@ public class ChordSymbol implements MusicSymbol {
         canvas.translate(-(getWidth() - getMinWidth()), 0);
     }
 
-    private void DrawNotes(Canvas canvas, Paint paint, int ytop, WhiteNote topstaff, boolean correctNote, boolean beingPlayed) {
+    private void DrawNotes(Canvas canvas, Paint paint, int ytop, WhiteNote topstaff, boolean correctNote, boolean beingPlayed, boolean extraNotes) {
         paint.setStrokeWidth(1);
         for (NoteData note : notedata) {
 
@@ -624,7 +625,16 @@ public class ChordSymbol implements MusicSymbol {
             }
             else if(correctNote)
             {
-                paint.setColor(Color.GREEN);
+                if(extraNotes)
+                {
+                    paint.setColor(Color.YELLOW);
+
+                }
+                else
+                {
+                    paint.setColor(Color.GREEN);
+
+                }
 
             }
             else

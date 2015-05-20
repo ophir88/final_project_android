@@ -38,7 +38,16 @@ import be.tarsos.dsp.util.PitchConverter;
  */
 
 public class Staff {
-    private ArrayList<MusicSymbol> symbols;
+
+    public final static int PEAK_LOC = 0;
+    public final static int PEAK_FREQ = 1;
+    public final static int PEAK_AMP = 2;
+    public final static int PEAK_NOTE = 3;
+    public final static int PEAK_FUNDAMENTAL = 4;
+    public final static int PEAK_PLAYED = 5;
+    public final static int MAX_PEAKS = 60;
+
+    ArrayList<MusicSymbol> symbols;
     /**
      * The music symbols in this staff
      */
@@ -62,7 +71,7 @@ public class Staff {
     /**
      * If true, show the measure numbers
      */
-    private int keysigWidth;
+    int keysigWidth;
     /**
      * The width of the clef and key signature
      */
@@ -82,11 +91,11 @@ public class Staff {
     /**
      * The total number of tracks
      */
-    private int starttime;
+    int starttime;
     /**
      * The time (in pulses) of first symbol
      */
-    private int endtime;
+    int endtime;
     /**
      * The time (in pulses) of last symbol
      */
@@ -457,19 +466,19 @@ public class Staff {
      * Store the x coordinate location where the shade was drawn.
      */
     public int ShadeNotes(Canvas canvas, Paint paint, int shade,
-                          int currentPulseTime, int prevPulseTime, int x_shade, double[][] peaks, int staffCount) {
+                          int currentPulseTime, int prevPulseTime, int x_shade, float[][] peaks, int staffCount
+            , ArrayList<Staff> staffs) {
 //        Log.d("chord" , "callback called, start time is: " + currentPulseTime);
 
 
-        if(((currentPulseTime==prevPulseTime) && (currentPulseTime == 0)))
-        {
+        if (((currentPulseTime == prevPulseTime) && (currentPulseTime == 0))) {
             prevPulseTime = -10;
         }
 
         /* If there's nothing to unshade, or shade, return */
         if ((starttime > prevPulseTime || endtime < prevPulseTime) &&
                 (starttime > currentPulseTime || endtime < currentPulseTime)) {
-            Log.d("chord" , "return from 1");
+            Log.d("chord", "return from 1");
 
             return x_shade;
         }
@@ -511,19 +520,18 @@ public class Staff {
                 if (x_shade == 0) {
                     x_shade = xpos;
                 }
-                Log.d("chord" , "return from 2");
+                Log.d("chord", "return from 2");
 
                 return x_shade;
             }
 
-            isChord =  (curr instanceof ChordSymbol)? true : false;
+            isChord = (curr instanceof ChordSymbol) ? true : false;
             /* If shaded notes are the same, we're done */
             if ((start <= currentPulseTime) && (currentPulseTime < end) &&
                     (start <= prevPulseTime) && (prevPulseTime < end)) {
-                if(isChord && ((ChordSymbol)curr).read)
-                {
+                if (isChord && ((ChordSymbol) curr).read) {
                     x_shade = xpos;
-                    Log.d("chord" , "return from 3");
+                    Log.d("chord", "return from 3");
 
                     return x_shade;
                 }
@@ -543,7 +551,7 @@ public class Staff {
                 paint.setColor(Color.BLACK);
                 canvas.translate(-(xpos - 2), 2);
                 canvas.translate(xpos, 0);
-                Log.d("chord" , "sending to Draw, white backGround");
+                Log.d("chord", "sending to Draw, white backGround");
 
                 curr.Draw(canvas, paint, ytop);
                 canvas.translate(-xpos, 0);
@@ -553,69 +561,122 @@ public class Staff {
 
             /* If symbol is in the current time, draw a shaded background */
             if ((start <= currentPulseTime) && (currentPulseTime < end)) {
-                if(isChord)
-                {
+                if (isChord) {
                     NoteData[] notes = ((ChordSymbol) curr).getNotedata();
-                    for(NoteData note : notes)
-                    {
-                        int noteNumber = note.number;
+                    for (NoteData note : notes) {
+                        Log.d("notess", "**************************************");
+                        Log.d("extra", "**************************************");
 
-                        if(peaks!=null)
-                        {
-                            Log.d("chordPeaks" , "**************************************");
-                            Log.d("chordPeaks" , "");
-                            Log.d("chordPeaks" , "looking for: " + noteNumber);
-                            Log.d("chordPeaks" , "---------------------");
-                            Log.d("chordPeaks" , "");
+                        int noteNumber = note.number;
+                        Log.d("notess", "looking for: " + noteNumber);
+                        Log.d("extra", "looking for: " + noteNumber);
+
+                        if (peaks != null) {
+                            Log.d("notess", "available notes are: ");
+                            for (int peakIndex = 0; peakIndex < peaks.length; peakIndex++) {
+                                if(peaks[peakIndex][PEAK_NOTE]==0) break;
+                                Log.d("notess", " " + peaks[peakIndex][PEAK_NOTE]);
+
+                            }
+
+
+//                            Log.d("chordPeaks", "");
+//                            Log.d("chordPeaks", "looking for: " + noteNumber);
+//                            Log.d("extra", "looking for: " + noteNumber);
+//
+//                            Log.d("chordPeaks", "---------------------");
+//                            Log.d("chordPeaks", "");
 
 //                            Math.min(pea)
-                            for(int peakIndex = 0 ; peakIndex< 60 ; peakIndex++)
-                        {
-                            if(peaks[peakIndex][0]==0)
-                            {
-                                break;
-                            }
-                            int peak =  PitchConverter.hertzToMidiKey(peaks[peakIndex][0]);
-                            if(noteNumber == peak)
-                            {
-                                note.playCount++;
+                            for (int peakIndex = 0; peakIndex < peaks.length; peakIndex++) {
+                                if (peaks[peakIndex][PEAK_AMP] == 0) {
+                                    break;
+                                }
+                                int peak = (int) peaks[peakIndex][PEAK_NOTE];
+                                if (noteNumber%12 == peak%12) {
+                                    peaks[peakIndex][PEAK_PLAYED]++;
+                                    note.playCount++;
+//                                    Log.d("chordPeaks", "found peak!");
+                                    break;
 
+                                }
                             }
-
-                            Log.d("chordPeaks" , "found peak at: [ "+peak+" , " + peaks[peakIndex][0]+" ]");
-                        }
-                            Log.d("chordPeaks" , "**************************************");
-                            Log.d("chordPeaks" , "");
-                            Log.d("chordPeaks" , "");
+//                            Log.d("chordPeaks", "**************************************");
+//                            Log.d("chordPeaks", "");
+//                            Log.d("chordPeaks", "");
 
 
                         }
 //
 //                        note.playCount++;
-                        Log.d("chord" , "staff "+ staffCount+": playing note number: "+ noteNumber + " played: " + note.playCount + " times");
-                        Log.d("chord" , noteNumber + " exp count:  " + note.expCount);
+//                        Log.d("chord", "staff " + staffCount + ": playing note number: " + noteNumber + " played: " + note.playCount + " times");
+//                        Log.d("chord", noteNumber + " exp count:  " + note.expCount);
 
 //                        Log.d("chord" , "note starts at: " + curr.getStartTime()+", for " + note.duration);
-                        if(note.playCount >= note.expCount)
-                        {
-                            Log.d("chord" , "count exceeded exp");
-
+                        if (note.playCount >= note.expCount) {
+//                            Log.d("chord", "count exceeded exp");
                             note.played = true;
                         }
                     }
                     boolean allRead = true;
-                    for(NoteData note : notes)
-                    {
-                        if (!note.played)
-                        {
-                           allRead = false;
+                    ((ChordSymbol) curr).extraNotes = false;
+
+                    for (NoteData note : notes) {
+                        if (!note.played) {
+                            allRead = false;
                         }
 
                     }
-                    if(allRead) {
-                        Log.d("chord" , "read the whole chord!");
+                    if (allRead) {
+                        Log.d("chord", "read the whole chord!");
                         correct = true;
                         ((ChordSymbol) curr).read = true;
+                        if (peaks != null) {
+                            // make sure every peak we found is relevant:
+                            for (int peakIndex = 0; peakIndex < peaks.length; peakIndex++) {
+                                // if we found a peak that wasn't played
+                                if (peaks[peakIndex][PEAK_PLAYED] == 0 && peaks[peakIndex][PEAK_AMP] > 0) {
+
+                                    Log.d("extra", "found extra note: " + peaks[peakIndex][PEAK_NOTE]);
+                                    Log.d("extra", "looking for fundamental:");
+                                    boolean foundFundamental = false;
+//                                    look for all notes that were supposed to be played:
+
+                                    Log.d("extra", "looking for note in " + staffs.size() + " staffs");
+
+                                    for (Staff staff : staffs) {
+                                        ArrayList<Integer> tempSymbols = getCurrentSymbols.getSymbols(currentPulseTime, prevPulseTime, staff);
+                                        Log.d("extra", "current staff has " + tempSymbols.size() + "notes playing");
+
+                                        for (int noteNumber : tempSymbols) {
+                                            // if we found a note which is a harmonic of it, it's ok.
+                                            if (peaks[peakIndex][PEAK_NOTE] % 12 == noteNumber % 12) {
+                                                Log.d("extra", "found fundamental:");
+
+                                                foundFundamental = true;
+                                                break;
+
+                                            }
+                                        }
+                                        if(foundFundamental)
+                                        {
+                                            break;
+                                        }
+
+                                    }
+                                    if (!foundFundamental) {
+                                        Log.d("extra", "***extra note!!***");
+
+                                        ((ChordSymbol) curr).extraNotes = true;
+                                        break;
+                                    }
+
+
+
+                                }
+                            }
+                        }
+
                     }
 
                 }
@@ -626,16 +687,13 @@ public class Staff {
                 canvas.drawRect(0, 0, curr.getWidth(), this.getHeight(), paint);
                 paint.setStyle(Paint.Style.STROKE);
                 paint.setColor(Color.BLUE);
-                if(isChord)
-                {
-                    ((ChordSymbol) curr).Draw(canvas, paint, ytop, ((ChordSymbol) curr).read , true);
-                    Log.d("chord" , "sending to Draw, gray backGround - color");
+                if (isChord) {
+                    ((ChordSymbol) curr).Draw(canvas, paint, ytop, ((ChordSymbol) curr).read, true, ((ChordSymbol) curr).extraNotes);
+                    Log.d("chord", "sending to Draw, gray backGround - color");
 
-                }
-                else
-                {
+                } else {
                     curr.Draw(canvas, paint, ytop);
-                    Log.d("chord" , "sending to Draw, gray backGround - black");
+                    Log.d("chord", "sending to Draw, gray backGround - black");
 
                 }
 
@@ -662,9 +720,9 @@ public class Staff {
 
                 if (prevChord != null) {
                     canvas.translate(prev_xpos, 0);
-                    Log.d("chord" , "sending to Draw, prevChord");
+                    Log.d("chord", "sending to Draw, prevChord");
 
-                    prevChord.Draw(canvas, paint, ytop , prevChord.read, false);
+                    prevChord.Draw(canvas, paint, ytop, prevChord.read, false, prevChord.extraNotes);
 
                     canvas.translate(-prev_xpos, 0);
                 }
@@ -687,23 +745,20 @@ public class Staff {
         return x_shade;
     }
 
-    public void cleanSymbols()
-    {
-        for(MusicSymbol symbol :symbols)
-        {
-            if(symbol instanceof ChordSymbol)
-            {
+    public void cleanSymbols() {
+        for (MusicSymbol symbol : symbols) {
+            if (symbol instanceof ChordSymbol) {
                 ((ChordSymbol) symbol).read = false;
                 NoteData[] notes = ((ChordSymbol) symbol).getNotedata();
 
-                for(NoteData note : notes)
-                {
+                for (NoteData note : notes) {
                     note.playCount = 0;
                     note.played = false;
                 }
             }
         }
     }
+
     @Override
     public String toString() {
         String result = "Staff clef=" + clefsym.toString() + "\n";

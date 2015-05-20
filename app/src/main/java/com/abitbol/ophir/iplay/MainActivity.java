@@ -351,15 +351,7 @@ public class MainActivity extends ActionBarActivity {
 
 //                    if (maxAmp > 0.1) {
                     Log.d("max amp", "max: " + maxAmp);
-                    // set variables
-//                    float SR = audioEvent.getSampleRate();
-//                    int BS = audioEvent.getBufferSize();
 
-
-//                     apply hanning:
-//                    for (int i = 0; i < audioFloatBuffer.length; i++) {
-//                        audioFloatBuffer[i] = audioFloatBuffer[i] * hannWindow[i];
-//                    }
 
                     float[] transformbuffer = new float[bufferSize * 2];
 
@@ -420,18 +412,12 @@ public class MainActivity extends ActionBarActivity {
                      * 1 = frequency
                      * 2 = amplitude
                      */
-
-//                    Log.d("possiblePeaks", " ######################################################");
-
                     possiblePeaks = new float[MAX_PEAKS][3];
                     int peakCounter = 0;
                     boolean full = false;
                     boolean minorPeak;
                     for (int i = 1; i < amplitudes.length / 2; i++) {
-
-
                         minorPeak = false; //   restart bool:
-
 
                         // find peaks:
                         if (amplitudes[i] > thresh
@@ -464,8 +450,6 @@ public class MainActivity extends ActionBarActivity {
                                 possiblePeaks[peakCounter][PEAK_LOC] = i;
                                 possiblePeaks[peakCounter][PEAK_FREQ] = (float) (i * fourierCoef);
                                 possiblePeaks[peakCounter][PEAK_AMP] = amplitudes[i];
-//                                Log.d("possiblePeaks", " possible [ freq: " + possiblePeaks[peakCounter][PEAK_FREQ] + " ] , [ amp: "+
-//                                        possiblePeaks[peakCounter][PEAK_AMP] + " ] " );
                                 peakCounter++;
                             }
                         }
@@ -474,8 +458,6 @@ public class MainActivity extends ActionBarActivity {
                             break;
                         }
                     }
-//                    Log.d("possiblePeaks", "  ---------------------------------------------  ");
-
 //                    find the peak average:
                     float peakAverage = 0;
                     int numOfPeaks = 0;
@@ -488,8 +470,6 @@ public class MainActivity extends ActionBarActivity {
                     peakAverage /= numOfPeaks;
 
 
-//                    Log.d("possiblePeaks", "Peak average: " + peakAverage );
-
 
                     float[] tempSolution = amplitudes;
                     foundPeaks = new float[peakCounter][5];
@@ -500,9 +480,6 @@ public class MainActivity extends ActionBarActivity {
                         foundSecond = false;
                         // look for peak with amp thresh:
                         if (possiblePeaks[i][PEAK_FREQ] < 2500 && possiblePeaks[i][PEAK_AMP] > peakAverage * 0.75) {
-//                            Log.d("possiblePeaks", "___found__");
-
-//                            Log.d("possiblePeaks", "checking peak: " + possiblePeaks[i][PEAK_FREQ] );
 
                             // look for second harmony
                             for (int j = i + 1; j < peakCounter; j++) {
@@ -510,17 +487,13 @@ public class MainActivity extends ActionBarActivity {
                                     if ((PitchConverter.hertzToMidiKey((double) possiblePeaks[i][PEAK_FREQ]) == PitchConverter.hertzToMidiKey((double) (possiblePeaks[j][PEAK_FREQ] / 2))
                                             && possiblePeaks[j][PEAK_AMP] > peakAverage / 10)) {
 
-//                                        Log.d("possiblePeaks", "found match: " + possiblePeaks[j][PEAK_FREQ] );
 
-//                                if ((Math.abs(possiblePeaks[i][PEAK_FREQ] - possiblePeaks[j][PEAK_FREQ] / 2) < 8 && possiblePeaks[j][PEAK_AMP] > peakAverage / 10)) {
 
                                         //get surrounding average:
                                         float average = getAverage((int) possiblePeaks[i][PEAK_LOC], tempSolution, fourierCoef);
-//                                        Log.d("possiblePeaks", "average " + average );
 
 //                                    get ratio:
                                         float ratio = possiblePeaks[i][PEAK_AMP] / average;
-//                                        Log.d("possiblePeaks", "ratio " + ratio );
 
 
                                         if (ratio >= 3) {
@@ -531,7 +504,6 @@ public class MainActivity extends ActionBarActivity {
                                             foundPeaks[foundCounter][PEAK_FREQ] = possiblePeaks[i][PEAK_FREQ];
                                             foundPeaks[foundCounter][PEAK_NOTE] = PitchConverter.hertzToMidiKey((double) possiblePeaks[i][PEAK_FREQ]);
                                             foundPeaks[foundCounter][PEAK_FUNDAMENTAL] = 0;
-//                                        Log.d("possiblePeaks", " adding : [ freq: " + foundPeaks[foundCounter][PEAK_FREQ] + " ]");
 
 
                                             foundCounter++;
@@ -558,7 +530,6 @@ public class MainActivity extends ActionBarActivity {
 
 
                     }
-//                    Log.d("possiblePeaks", " ######################################################");
 
                     // look for third harmonic
                     for (int i = 0; i < foundCounter; i++) {
@@ -862,21 +833,21 @@ public class MainActivity extends ActionBarActivity {
 //                        currNotePower.power = power;
 //                    }
 
-                    Log.d("fundamentals", "*********************************************");
-                    Log.d("fundamentals", "showing fundamentals: ");
-                    Log.d("fundamentals", "---------------------------------------- ");
-                    Log.d("fundamentals", "definite: ");
-                    Log.d("fundamentals", "-------- ");
-
-                    for (int i = 0; i < foundCounter; i++) {
-//                        if(foundPeaks[i][PEAK_FUNDAMENTAL]>0)
-//                        {
-                        Log.d("fundamentals", "[note: " + foundPeaks[i][PEAK_NOTE] + " ] , [ freq: " +
-                                foundPeaks[i][PEAK_FREQ] + "] , [HarmPower: " + foundPeaks[i][PEAK_FUNDAMENTAL]
-                                + " ]");
-
-//                        }
-                    }
+//                    Log.d("fundamentals", "*********************************************");
+//                    Log.d("fundamentals", "showing fundamentals: ");
+//                    Log.d("fundamentals", "---------------------------------------- ");
+//                    Log.d("fundamentals", "definite: ");
+//                    Log.d("fundamentals", "-------- ");
+//
+//                    for (int i = 0; i < foundCounter; i++) {
+////                        if(foundPeaks[i][PEAK_FUNDAMENTAL]>0)
+////                        {
+//                        Log.d("fundamentals", "[note: " + foundPeaks[i][PEAK_NOTE] + " ] , [ freq: " +
+//                                foundPeaks[i][PEAK_FREQ] + "] , [HarmPower: " + foundPeaks[i][PEAK_FUNDAMENTAL]
+//                                + " ]");
+//
+////                        }
+//                    }
 
 
                     // normalize

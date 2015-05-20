@@ -1369,7 +1369,7 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
      * to the shaded notes.
      */
     public void ShadeNotes(int currentPulseTime, int prevPulseTime,
-                           boolean scrollGradually, double[][] peaks ) {
+                           boolean scrollGradually, float[][] peaks ) {
 //        Log.d("shading" , "curr: " + currentPulseTime + " prev: " + prevPulseTime);
         if (!surfaceReady || staffs == null) {
             return;
@@ -1404,7 +1404,7 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
 //            Log.d("shading" , "correct shading");
 
             x_shade = staff.ShadeNotes(bufferCanvas, paint, shade1,
-                    currentPulseTime, prevPulseTime, x_shade, peaks , staffCount);
+                    currentPulseTime, prevPulseTime, x_shade, peaks , staffCount , staffs);
             staffCount++;
             bufferCanvas.translate(0, -ypos);
             ypos += staff.getHeight();
