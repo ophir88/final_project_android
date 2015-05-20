@@ -559,15 +559,7 @@ public class Staff {
                     for(NoteData note : notes)
                     {
                         int noteNumber = note.number;
-//                        if(staffCount==1)
-//                        {
-//                            noteNumber = note.number-20;
-//                        }
-//                        else
-//                        {
-//                            noteNumber = note.number;
-//
-//                        }
+
                         if(peaks!=null)
                         {
                             Log.d("chordPeaks" , "**************************************");
@@ -577,7 +569,7 @@ public class Staff {
                             Log.d("chordPeaks" , "");
 
 //                            Math.min(pea)
-                            for(int peakIndex = 0 ; peakIndex< 6 ; peakIndex++)
+                            for(int peakIndex = 0 ; peakIndex< 60 ; peakIndex++)
                         {
                             if(peaks[peakIndex][0]==0)
                             {

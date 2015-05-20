@@ -62,6 +62,12 @@ public class MainActivity extends ActionBarActivity {
     public final static int DURATION = 2;
     public final static int PEAK_START = 0;
     public final static int PEAK_END = 1;
+    public final static int PEAK_LOC = 0;
+    public final static int PEAK_FREQ = 1;
+    public final static int PEAK_AMP = 2;
+    public final static int PEAK_NOTE = 3;
+    public final static int PEAK_FUNDAMENTAL = 4;
+    public final static int MAX_PEAKS = 60;
 
     ArrayList<MidiNote> notes; // will hold the notes of the song
     double[][] tempExpNotes = new double[5][4]; // will hold the current notes we are looking for
@@ -103,12 +109,12 @@ public class MainActivity extends ActionBarActivity {
         // set variables *-*-*-*-*-*-*-*-*-*-*-*-*-
         // final double[] freqs = gtNt.getFreqs();
         final int bufferSize = (int) windowSize;
-        final double fourierCoef = SR / (2 * (windowSize));
-        Log.d("fourier" , "coef: " + SR + " / "+2+" * "+ windowSize );
+        final double fourierCoef = SR / (windowSize);
+        Log.d("fourier", "coef: " + SR + " / " + 2 + " * " + windowSize);
         final getNote gtNt = new getNote(bufferSize, fourierCoef);
         noteDB = gtNt.getNotes();
 
-        final float threshold = (float) 0.01;
+        final float thresh = (float) 0.01;
 
         // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 
@@ -133,6 +139,10 @@ public class MainActivity extends ActionBarActivity {
 
 
             float[] amplitudes = new float[bufferSize];
+            float[] amplitudesDerivative = new float[bufferSize];
+            float[][] possiblePeaks;
+            float[][] foundPeaks;
+
             float[] phase = new float[bufferSize];
 
 
@@ -356,27 +366,23 @@ public class MainActivity extends ActionBarActivity {
                     System.arraycopy(audioFloatBuffer, 0, transformbuffer, 0,
                             audioFloatBuffer.length);
 
-//                    jft.realForward((float[]) transformbuffer);
 
-
-//                    jft.realForward(transformbuffer);
-//                    amplitudes = transformbuffer;
-
-//                    20 × log10(F(x) + 1)
-
-                    // create fourier
-//                    fft.forwardTransform(transformbuffer);
-//                    fft.modulus(transformbuffer, amplitudes);
                     fft.powerPhaseFFT(transformbuffer, amplitudes, phase);
 
 
+
+
+                    float max = 0;
+
+//                    first filter
                     for (int i = 0; i < amplitudes.length / 2; i++) {
                         amplitudes[i] = (amplitudes[i]) * noteDB[i];
                     }
 
+
                     // Log used as debug
                     File log = new File(Environment.getExternalStorageDirectory(), "buffer.txt");
-                    Log.d("buffer" , "path: " + log.getAbsolutePath());
+                    Log.d("buffer", "path: " + log.getAbsolutePath());
                     try {
                         BufferedWriter out = new BufferedWriter(new FileWriter(log.getAbsolutePath(), true));
                         out.write("buffer: \n");
@@ -390,297 +396,471 @@ public class MainActivity extends ActionBarActivity {
                         Log.e("buffer", "Error opening Log.", e);
                     }
 
+//                    derivate:
 
-//                 find peaks:
-                    float max = 0;
-                    float freq = 0;
-                    int numPeaks = 0;
-                    double[] peaks = new double[100];
-                    float fDelta = SR / amplitudes.length;
-
-                    List<Peak> peakList = new ArrayList<Peak>();
-
-                    max = 0;
-//                    for (int i = 0; i < amplitudes.length / 2; i++) {
-//                        amplitudes[i] = (float) (20.0 * Math.log10(((double) (amplitudes[i] + 1))));
-////                        max = (max < amplitudes[i]) ? amplitudes[i] : max;
-//                    }
-
-                    float averagePeak = 0;
-//                    float numOfPeaks = 0;
-
-
-//                    *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-//                    *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-
-                    double mx;
-                    double mn;
-                    int mx_pos = 0;
-                    int mn_pos = 0;
-                    boolean looking = true;
-                    float deltaNew = (float) 0.01;
-                    float maxPeak = 0;
-                    mx = amplitudes[0];
-                    mn = amplitudes[0];
-
-                    int numOfPeaks = 0;
-                    int numOfPeaksAbsorb = 0;
-
-                    for (int i = 1; i < amplitudes.length / 2; ++i) {
-                        if (amplitudes[i] > mx) {
-                            mx_pos = i;
-                            mx = amplitudes[i];
+                    for (int i = 1; i < amplitudes.length / 2; i++) {
+                        amplitudesDerivative[i] = amplitudes[i] - amplitudes[i - 1];
+//                        erase negative values:
+                        if (amplitudesDerivative[i] < 0) {
+                            amplitudesDerivative[i] = 0;
                         }
-                        if (amplitudes[i] < mn) {
-                            mn_pos = i;
-                            mn = amplitudes[i];
-                        }
+                        // remember maxium value for normalization
+                        max = (max < amplitudesDerivative[i]) ? amplitudesDerivative[i] : max;
 
-                        if (looking &&
-                                amplitudes[i] < mx - deltaNew) {
-                            maxPeak = (maxPeak < amplitudes[i]) ? amplitudes[i] : maxPeak;
-
-                            averagePeak += (amplitudes[i] * amplitudes[i]);
-                            numOfPeaks++;
-                            looking = false;
-
-                            i = mx_pos - 1;
-
-                            mn = amplitudes[mx_pos];
-                            mn_pos = mx_pos;
-                        } else if ((!looking) &&
-                                amplitudes[i] > mn + deltaNew) {
-//                            absop_peaks[*num_absop_peaks] = mn_pos;
-//                            ++ (*num_absop_peaks);
-
-                            looking = true;
-
-                            i = mn_pos - 1;
-
-                            mx = amplitudes[mn_pos];
-                            mx_pos = mn_pos;
-                        }
                     }
-                    averagePeak /= numOfPeaks;
+                    amplitudes = amplitudesDerivative;
 
-
-                    mx = 0;
-                    mn = 0;
-                    mx_pos = 0;
-                    mn_pos = 0;
-                    looking = true;
-                    deltaNew = (float) (averagePeak / 3);
-                    Log.d("fundamentals", "delat: " + deltaNew);
-                    mx = amplitudes[0];
-                    mn = amplitudes[0];
-
-                    numOfPeaks = 0;
-                    numOfPeaksAbsorb = 0;
-
-                    for (int i = 1; i < amplitudes.length / 2; ++i) {
-                        if (amplitudes[i] > mx) {
-                            mx_pos = i;
-                            mx = amplitudes[i];
-                        }
-                        if (amplitudes[i] < mn) {
-                            mn_pos = i;
-                            mn = amplitudes[i];
-                        }
-
-                        if (looking &&
-                                amplitudes[i] < mx - deltaNew) {
-                            if (amplitudes[i] >= maxPeak / 3) {
-                                Peak pk = quadraticPeak(i, amplitudes);
-                                peakList.add(quadraticPeak(i, amplitudes));
-                                Log.d("fundamentals", "[for the freq: " + pk.location * fourierCoef + ", amp: " + pk.amplitude + " ]");
-
-                                looking = false;
-
-                                i = mx_pos - 1;
-
-                                mn = amplitudes[mx_pos];
-                                mn_pos = mx_pos;
-                            }
-
-                        } else if ((!looking) &&
-                                amplitudes[i] > mn + deltaNew) {
-//                            absop_peaks[*num_absop_peaks] = mn_pos;
-//                            ++ (*num_absop_peaks);
-
-                            looking = true;
-
-                            i = mn_pos - 1;
-
-                            mx = amplitudes[mn_pos];
-                            mx_pos = mn_pos;
-                        }
+//                    normalize to 1:
+                    for (int i = 0; i < amplitudes.length / 2; i++) {
+                        amplitudes[i] /= max;
                     }
+                    /**
+                     * this will hold the possible peaks:
+                     * 0 = location;
+                     * 1 = frequency
+                     * 2 = amplitude
+                     */
+
+//                    Log.d("possiblePeaks", " ######################################################");
+
+                    possiblePeaks = new float[MAX_PEAKS][3];
+                    int peakCounter = 0;
+                    boolean full = false;
+                    boolean minorPeak;
+                    for (int i = 1; i < amplitudes.length / 2; i++) {
 
 
-//                    *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-//                    *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+                        minorPeak = false; //   restart bool:
 
 
-//                    for (int i = 1; i < amplitudes.length / 2; i++) {
-////                        amplitudes[i] = noteDB[i] * amplitudes[i];
-//                        if (amplitudes[i] > 0.01 && amplitudes[i] > amplitudes[i - 1]
-//                                && amplitudes[i] > amplitudes[i + 1]) {
-//                            averagePeak += ( amplitudes[i]*amplitudes[i]);
-//                            numOfPeaks++;
-//                        }
-//
-//                    }
-//                    averagePeak /= numOfPeaks;
-//                    float delta = averagePeak / 3;
+                        // find peaks:
+                        if (amplitudes[i] > thresh
+                                && amplitudes[i] > amplitudes[i - 1]
+                                && amplitudes[i] > amplitudes[i + 1]) {
 
+                            // check for close range peaks:
+                            if (peakCounter > 0) {
+                                float lastFreq = possiblePeaks[peakCounter - 1][PEAK_FREQ];
+                                double n = 12 * Math.log((lastFreq / 400)) + 49;
+                                // find the next note in relation to the previous peak
+                                double nextNote = Math.pow(2, (n - 48) / 12) * 440;
+//                                   frequency between them:
+                                double diff = nextNote - lastFreq;
 
-//                    for (int i = 0; i < amplitudes.length / 2; i++) {
-//                        amplitudes[i] = (amplitudes[i]) * noteDB[i];
-//                    }
-
-
-//                    Log.d("Delta", "spec max: " + delta);
-
-//
-////                    fundamental search:
-////                    Log.d("Delta", "length is:  " + amplitudes.length);
-//
-//                    for (int i = 1; i < amplitudes.length / 2; i++) {
-////                        Log.d("Delta", "index is: " +i);
-//
-//                        if (amplitudes[i] > delta
-//                                && amplitudes[i] > amplitudes[i - 1]
-//                                && amplitudes[i] > amplitudes[i + 1]) {
-////                            check for close range
-//                            boolean biggestPeak = true;
-//                            // get start index and end index for peak checking:
-////                            int stIn = ((i - (int) (10 / fourierCoef)) < 0) ? i : (int) (10 / fourierCoef);
-////                            int endIn = ((i + (int) (10 / fourierCoef)) > amplitudes.length) ? amplitudes.length - i - 1 : (int) (10 / fourierCoef);
-//                            Log.d("ADDING", "[for the freq: " +i * fDelta + ", amp: " + amplitudes[i] + " ]");
-//
-////                            for (int j = -stIn; j < stIn + endIn; j++) {
-////                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
-////                                if (j != 0) {
-////                                    Log.d("DEBUGIS", "[ "+0.1*finalAmplitudes[i]+" ] < [ "+ finalAmplitudes[i + j] + " ]");
-//
-////                                }
-//
-////                                if (amplitudes[i] < amplitudes[i + j]) {
-////                                    if (j != 0) {
-////                                        amplitudes[i] = 0;
-////                                        biggestPeak = false;
-////                                        break;
-////                                    }
-//
-////                                }
-////                            }
-//
-////                            if (biggestPeak) {
-////                                Log.d("ADDING", "i =  " + i + " freq: " + (i) * fourierCoef + " amp: " + amplitudes[i]);
-//                                peakList.add(new Peak(i));
-//
-////                            }
-//
-//
-//                        }
-//                    }
-
-
-                    Log.d("fundamentals", "so far, there are " + peakList.size() + " potential peaks");
-
-                    // we have a list of possible peaks:
-                    float[] lowFreqs = new LowFrequencies().getLowFreqs();
-
-//                    iterate over peaks:
-
-
-                    for (int i = 0; i < peakList.size(); i++) {
-                        Peak currPeak = peakList.get(i);
-                        float frequency = currPeak.location * fDelta;
-
-                        for (int j = 0; j < lowFreqs.length; j++) {
-                            double q = frequency / lowFreqs[j];
-                            float quotient = Math.round(q);
-                            double remainder = Math.abs(quotient - q);
-                            double t = fDelta * quotient;
-                            double x = (lowFreqs[j] + t) / lowFreqs[j];
-                            double threshold = Math.abs(Math.round(x) - x);
-                            if (remainder < threshold) {
-                                peakList.get(i).add(new NoteMultiple(j, (int) quotient, currPeak.amplitude));
-                            }
-                        }
-                    }
-
-                    // find supporting harmonics for each peak:
-                    List<NoteMultiple> fundamentals = new ArrayList<NoteMultiple>();
-
-                    for (int i = 0; i < peakList.size(); i++) {
-                        Peak currPeak = peakList.get(i);
-
-                        List<NoteMultiple> NMList = currPeak.getList();
-
-                        for (int j = 0; j < NMList.size(); j++) {
-                            NoteMultiple currNM = NMList.get(j);
-                            // if it is a power of 2:
-                            if ((currNM.multiple & (currNM.multiple - 1)) == 0) {
-//                                search for supporting harmonics:
-                                for (int a = i + 1; a < peakList.size(); a++) {
-                                    Peak currPeakHarmonic = peakList.get(a);
-
-                                    List<NoteMultiple> NMListHarmonic = currPeakHarmonic.getList();
-
-                                    for (int b = 0; b < NMListHarmonic.size(); b++) {
-                                        NoteMultiple currNMHarmonic = NMListHarmonic.get(b);
-                                        if (currNM.note == currNMHarmonic.note && currNM.multiple < currNMHarmonic.multiple) {
-                                            // add supporting harmonic:
-                                            currNM.addSupport(currNMHarmonic);
-                                            currNM.supportCount++;
-                                        }
+//                                    if the actual difference is less than diff, find the bigger one:
+                                if (Math.abs(i * fourierCoef - lastFreq) < diff * 0.7) {
+                                    if (amplitudes[i] > possiblePeaks[peakCounter - 1][PEAK_AMP]) {
+                                        peakCounter--;
+                                    } else {
+                                        minorPeak = true;
                                     }
                                 }
-                                if (currNM.supportingHarmonics.size() > 0) {
-                                    fundamentals.add(currNM);
-                                }
+
+                            }
+
+                            if (!minorPeak) {
+
+
+                                possiblePeaks[peakCounter][PEAK_LOC] = i;
+                                possiblePeaks[peakCounter][PEAK_FREQ] = (float) (i * fourierCoef);
+                                possiblePeaks[peakCounter][PEAK_AMP] = amplitudes[i];
+//                                Log.d("possiblePeaks", " possible [ freq: " + possiblePeaks[peakCounter][PEAK_FREQ] + " ] , [ amp: "+
+//                                        possiblePeaks[peakCounter][PEAK_AMP] + " ] " );
+                                peakCounter++;
                             }
                         }
+
+                        if (peakCounter >= 60) {
+                            break;
+                        }
                     }
+//                    Log.d("possiblePeaks", "  ---------------------------------------------  ");
+
+//                    find the peak average:
+                    float peakAverage = 0;
+                    int numOfPeaks = 0;
+                    for (int i = 0; i < peakCounter; i++) {
+                        if (possiblePeaks[i][PEAK_AMP] > 0) {
+                            peakAverage += possiblePeaks[i][PEAK_AMP] * possiblePeaks[i][PEAK_AMP];
+                            numOfPeaks++;
+                        }
+                    }
+                    peakAverage /= numOfPeaks;
 
 
-                    List<NoteMultiple> definiteFunda = new ArrayList<NoteMultiple>();
-                    List<NoteMultiple> potentialFunda = new ArrayList<NoteMultiple>();
-                    float averageMean = 0;
-                    // find fundamentals:
-                    boolean isHarmonic;
-                    for (int i = 0; i < fundamentals.size(); i++) {
-                        isHarmonic = false;
-                        NoteMultiple fundamental = fundamentals.get(i);
-                        for (int j = 0; j < definiteFunda.size(); j++) {
-                            NoteMultiple definite = definiteFunda.get(j);
-                            for (int l = 0; l < definite.supportingHarmonics.size(); l++) {
-                                NoteMultiple harmonic = definite.supportingHarmonics.get(l);
-                                if (fundamental.note == harmonic.note && fundamental.multiple == harmonic.multiple) {
-                                    isHarmonic = true;
+//                    Log.d("possiblePeaks", "Peak average: " + peakAverage );
+
+
+                    float[] tempSolution = amplitudes;
+                    foundPeaks = new float[peakCounter][5];
+                    int foundCounter = 0;
+                    boolean foundSecond;
+                    for (int i = 0; i < peakCounter; i++) {
+
+                        foundSecond = false;
+                        // look for peak with amp thresh:
+                        if (possiblePeaks[i][PEAK_FREQ] < 2500 && possiblePeaks[i][PEAK_AMP] > peakAverage * 0.75) {
+//                            Log.d("possiblePeaks", "___found__");
+
+//                            Log.d("possiblePeaks", "checking peak: " + possiblePeaks[i][PEAK_FREQ] );
+
+                            // look for second harmony
+                            for (int j = i + 1; j < peakCounter; j++) {
+                                if (!foundSecond) {
+                                    if ((PitchConverter.hertzToMidiKey((double) possiblePeaks[i][PEAK_FREQ]) == PitchConverter.hertzToMidiKey((double) (possiblePeaks[j][PEAK_FREQ] / 2))
+                                            && possiblePeaks[j][PEAK_AMP] > peakAverage / 10)) {
+
+//                                        Log.d("possiblePeaks", "found match: " + possiblePeaks[j][PEAK_FREQ] );
+
+//                                if ((Math.abs(possiblePeaks[i][PEAK_FREQ] - possiblePeaks[j][PEAK_FREQ] / 2) < 8 && possiblePeaks[j][PEAK_AMP] > peakAverage / 10)) {
+
+                                        //get surrounding average:
+                                        float average = getAverage((int) possiblePeaks[i][PEAK_LOC], tempSolution, fourierCoef);
+//                                        Log.d("possiblePeaks", "average " + average );
+
+//                                    get ratio:
+                                        float ratio = possiblePeaks[i][PEAK_AMP] / average;
+//                                        Log.d("possiblePeaks", "ratio " + ratio );
+
+
+                                        if (ratio >= 3) {
+//                                        add to found peaks:
+
+                                            foundPeaks[foundCounter][PEAK_LOC] = possiblePeaks[i][PEAK_LOC];
+                                            foundPeaks[foundCounter][PEAK_AMP] = possiblePeaks[i][PEAK_AMP];
+                                            foundPeaks[foundCounter][PEAK_FREQ] = possiblePeaks[i][PEAK_FREQ];
+                                            foundPeaks[foundCounter][PEAK_NOTE] = PitchConverter.hertzToMidiKey((double) possiblePeaks[i][PEAK_FREQ]);
+                                            foundPeaks[foundCounter][PEAK_FUNDAMENTAL] = 0;
+//                                        Log.d("possiblePeaks", " adding : [ freq: " + foundPeaks[foundCounter][PEAK_FREQ] + " ]");
+
+
+                                            foundCounter++;
+
+//                                      erase the 2nd harmony from the solution:
+                                            tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 - 2)] = 0;
+                                            tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 - 1)] = 0;
+                                            tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2)] = 0;
+                                            tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 + 1)] = 0;
+                                            tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 + 2)] = 0;
+                                            foundSecond = true;
+                                        }
+
+                                    }
+                                }
+                                else
+                                {
                                     break;
                                 }
+
+
                             }
                         }
 
-                        if (isHarmonic) {
-                            potentialFunda.add(fundamental);
-                        } else {
-                            definiteFunda.add(fundamental);
-                            averageMean += fundamental.amplitude;
-                        }
 
                     }
-                    averageMean /= definiteFunda.size();
-                    double halfPi = Math.PI / 2;
-                    for (int i = 0; i < definiteFunda.size(); i++) {
-                        NoteMultiple currNotePower = definiteFunda.get(i);
-                        float power = currNotePower.amplitude + currNotePower.supportingHarmonics.get(0).amplitude;
-                        power = (float) (Math.atan(power - averageMean) / halfPi);
-                        currNotePower.power = power;
+//                    Log.d("possiblePeaks", " ######################################################");
+
+                    // look for third harmonic
+                    for (int i = 0; i < foundCounter; i++) {
+
+                        for (int j = i + 1; j < foundCounter; j++) {
+                            if (foundPeaks[i][PEAK_NOTE] % 12 == foundPeaks[j][PEAK_NOTE] % 12) {
+                                foundPeaks[i][PEAK_FUNDAMENTAL]++;
+                            }
+                        }
                     }
+
+
+//                 find peaks:
+//                    float max = 0;
+//                    float freq = 0;
+//                    int numPeaks = 0;
+//                    double[] peaks = new double[100];
+//                    float fDelta = SR / amplitudes.length;
+//
+//                    List<Peak> peakList = new ArrayList<Peak>();
+//
+//                    max = 0;
+////                    for (int i = 0; i < amplitudes.length / 2; i++) {
+////                        amplitudes[i] = (float) (20.0 * Math.log10(((double) (amplitudes[i] + 1))));
+//////                        max = (max < amplitudes[i]) ? amplitudes[i] : max;
+////                    }
+//
+//                    float averagePeak = 0;
+////                    float numOfPeaks = 0;
+//
+//
+////                    *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+////                    *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+//
+//                    double mx;
+//                    double mn;
+//                    int mx_pos = 0;
+//                    int mn_pos = 0;
+//                    boolean looking = true;
+//                    float deltaNew = (float) 0.01;
+//                    float maxPeak = 0;
+//                    mx = amplitudes[0];
+//                    mn = amplitudes[0];
+//
+//                    numOfPeaks = 0;
+//                    int numOfPeaksAbsorb = 0;
+//
+//                    for (int i = 1; i < amplitudes.length / 2; ++i) {
+//                        if (amplitudes[i] > mx) {
+//                            mx_pos = i;
+//                            mx = amplitudes[i];
+//                        }
+//                        if (amplitudes[i] < mn) {
+//                            mn_pos = i;
+//                            mn = amplitudes[i];
+//                        }
+//
+//                        if (looking &&
+//                                amplitudes[i] < mx - deltaNew) {
+//                            maxPeak = (maxPeak < amplitudes[i]) ? amplitudes[i] : maxPeak;
+//
+//                            averagePeak += (amplitudes[i] * amplitudes[i]);
+//                            numOfPeaks++;
+//                            looking = false;
+//
+//                            i = mx_pos - 1;
+//
+//                            mn = amplitudes[mx_pos];
+//                            mn_pos = mx_pos;
+//                        } else if ((!looking) &&
+//                                amplitudes[i] > mn + deltaNew) {
+////                            absop_peaks[*num_absop_peaks] = mn_pos;
+////                            ++ (*num_absop_peaks);
+//
+//                            looking = true;
+//
+//                            i = mn_pos - 1;
+//
+//                            mx = amplitudes[mn_pos];
+//                            mx_pos = mn_pos;
+//                        }
+//                    }
+//                    averagePeak /= numOfPeaks;
+//
+//
+//                    mx = 0;
+//                    mn = 0;
+//                    mx_pos = 0;
+//                    mn_pos = 0;
+//                    looking = true;
+//                    deltaNew = (float) (averagePeak / 3);
+//                    Log.d("fundamentals", "delat: " + deltaNew);
+//                    mx = amplitudes[0];
+//                    mn = amplitudes[0];
+//
+//                    numOfPeaks = 0;
+//                    numOfPeaksAbsorb = 0;
+//
+//                    for (int i = 1; i < amplitudes.length / 2; ++i) {
+//                        if (amplitudes[i] > mx) {
+//                            mx_pos = i;
+//                            mx = amplitudes[i];
+//                        }
+//                        if (amplitudes[i] < mn) {
+//                            mn_pos = i;
+//                            mn = amplitudes[i];
+//                        }
+//
+//                        if (looking &&
+//                                amplitudes[i] < mx - deltaNew) {
+//                            if (amplitudes[i] >= maxPeak / 3) {
+//                                Peak pk = quadraticPeak(i, amplitudes);
+//                                peakList.add(quadraticPeak(i, amplitudes));
+//                                Log.d("fundamentals", "[for the freq: " + pk.location * fourierCoef + ", amp: " + pk.amplitude + " ]");
+//
+//                                looking = false;
+//
+//                                i = mx_pos - 1;
+//
+//                                mn = amplitudes[mx_pos];
+//                                mn_pos = mx_pos;
+//                            }
+//
+//                        } else if ((!looking) &&
+//                                amplitudes[i] > mn + deltaNew) {
+////                            absop_peaks[*num_absop_peaks] = mn_pos;
+////                            ++ (*num_absop_peaks);
+//
+//                            looking = true;
+//
+//                            i = mn_pos - 1;
+//
+//                            mx = amplitudes[mn_pos];
+//                            mx_pos = mn_pos;
+//                        }
+//                    }
+//
+//
+////                    *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+////                    *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+//
+//
+////                    for (int i = 1; i < amplitudes.length / 2; i++) {
+//////                        amplitudes[i] = noteDB[i] * amplitudes[i];
+////                        if (amplitudes[i] > 0.01 && amplitudes[i] > amplitudes[i - 1]
+////                                && amplitudes[i] > amplitudes[i + 1]) {
+////                            averagePeak += ( amplitudes[i]*amplitudes[i]);
+////                            numOfPeaks++;
+////                        }
+////
+////                    }
+////                    averagePeak /= numOfPeaks;
+////                    float delta = averagePeak / 3;
+//
+//
+////                    for (int i = 0; i < amplitudes.length / 2; i++) {
+////                        amplitudes[i] = (amplitudes[i]) * noteDB[i];
+////                    }
+//
+//
+////                    Log.d("Delta", "spec max: " + delta);
+//
+////
+//////                    fundamental search:
+//////                    Log.d("Delta", "length is:  " + amplitudes.length);
+////
+////                    for (int i = 1; i < amplitudes.length / 2; i++) {
+//////                        Log.d("Delta", "index is: " +i);
+////
+////                        if (amplitudes[i] > delta
+////                                && amplitudes[i] > amplitudes[i - 1]
+////                                && amplitudes[i] > amplitudes[i + 1]) {
+//////                            check for close range
+////                            boolean biggestPeak = true;
+////                            // get start index and end index for peak checking:
+//////                            int stIn = ((i - (int) (10 / fourierCoef)) < 0) ? i : (int) (10 / fourierCoef);
+//////                            int endIn = ((i + (int) (10 / fourierCoef)) > amplitudes.length) ? amplitudes.length - i - 1 : (int) (10 / fourierCoef);
+////                            Log.d("ADDING", "[for the freq: " +i * fDelta + ", amp: " + amplitudes[i] + " ]");
+////
+//////                            for (int j = -stIn; j < stIn + endIn; j++) {
+//////                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
+//////                                if (j != 0) {
+//////                                    Log.d("DEBUGIS", "[ "+0.1*finalAmplitudes[i]+" ] < [ "+ finalAmplitudes[i + j] + " ]");
+////
+//////                                }
+////
+//////                                if (amplitudes[i] < amplitudes[i + j]) {
+//////                                    if (j != 0) {
+//////                                        amplitudes[i] = 0;
+//////                                        biggestPeak = false;
+//////                                        break;
+//////                                    }
+////
+//////                                }
+//////                            }
+////
+//////                            if (biggestPeak) {
+//////                                Log.d("ADDING", "i =  " + i + " freq: " + (i) * fourierCoef + " amp: " + amplitudes[i]);
+////                                peakList.add(new Peak(i));
+////
+//////                            }
+////
+////
+////                        }
+////                    }
+//
+//
+//                    Log.d("fundamentals", "so far, there are " + peakList.size() + " potential peaks");
+//
+//                    // we have a list of possible peaks:
+//                    float[] lowFreqs = new LowFrequencies().getLowFreqs();
+//
+////                    iterate over peaks:
+//
+//
+//                    for (int i = 0; i < peakList.size(); i++) {
+//                        Peak currPeak = peakList.get(i);
+//                        float frequency = currPeak.location * fDelta;
+//
+//                        for (int j = 0; j < lowFreqs.length; j++) {
+//                            double q = frequency / lowFreqs[j];
+//                            float quotient = Math.round(q);
+//                            double remainder = Math.abs(quotient - q);
+//                            double t = fDelta * quotient;
+//                            double x = (lowFreqs[j] + t) / lowFreqs[j];
+//                            double threshold = Math.abs(Math.round(x) - x);
+//                            if (remainder < threshold) {
+//                                peakList.get(i).add(new NoteMultiple(j, (int) quotient, currPeak.amplitude));
+//                            }
+//                        }
+//                    }
+//
+//                    // find supporting harmonics for each peak:
+//                    List<NoteMultiple> fundamentals = new ArrayList<NoteMultiple>();
+//
+//                    for (int i = 0; i < peakList.size(); i++) {
+//                        Peak currPeak = peakList.get(i);
+//
+//                        List<NoteMultiple> NMList = currPeak.getList();
+//
+//                        for (int j = 0; j < NMList.size(); j++) {
+//                            NoteMultiple currNM = NMList.get(j);
+//                            // if it is a power of 2:
+//                            if ((currNM.multiple & (currNM.multiple - 1)) == 0) {
+////                                search for supporting harmonics:
+//                                for (int a = i + 1; a < peakList.size(); a++) {
+//                                    Peak currPeakHarmonic = peakList.get(a);
+//
+//                                    List<NoteMultiple> NMListHarmonic = currPeakHarmonic.getList();
+//
+//                                    for (int b = 0; b < NMListHarmonic.size(); b++) {
+//                                        NoteMultiple currNMHarmonic = NMListHarmonic.get(b);
+//                                        if (currNM.note == currNMHarmonic.note && currNM.multiple < currNMHarmonic.multiple) {
+//                                            // add supporting harmonic:
+//                                            currNM.addSupport(currNMHarmonic);
+//                                            currNM.supportCount++;
+//                                        }
+//                                    }
+//                                }
+//                                if (currNM.supportingHarmonics.size() > 0) {
+//                                    fundamentals.add(currNM);
+//                                }
+//                            }
+//                        }
+//                    }
+//
+//
+//                    List<NoteMultiple> definiteFunda = new ArrayList<NoteMultiple>();
+//                    List<NoteMultiple> potentialFunda = new ArrayList<NoteMultiple>();
+//                    float averageMean = 0;
+//                    // find fundamentals:
+//                    boolean isHarmonic;
+//                    for (int i = 0; i < fundamentals.size(); i++) {
+//                        isHarmonic = false;
+//                        NoteMultiple fundamental = fundamentals.get(i);
+//                        for (int j = 0; j < definiteFunda.size(); j++) {
+//                            NoteMultiple definite = definiteFunda.get(j);
+//                            for (int l = 0; l < definite.supportingHarmonics.size(); l++) {
+//                                NoteMultiple harmonic = definite.supportingHarmonics.get(l);
+//                                if (fundamental.note == harmonic.note && fundamental.multiple == harmonic.multiple) {
+//                                    isHarmonic = true;
+//                                    break;
+//                                }
+//                            }
+//                        }
+//
+//                        if (isHarmonic) {
+//                            potentialFunda.add(fundamental);
+//                        } else {
+//                            definiteFunda.add(fundamental);
+//                            averageMean += fundamental.amplitude;
+//                        }
+//
+//                    }
+//                    averageMean /= definiteFunda.size();
+//                    double halfPi = Math.PI / 2;
+//                    for (int i = 0; i < definiteFunda.size(); i++) {
+//                        NoteMultiple currNotePower = definiteFunda.get(i);
+//                        float power = currNotePower.amplitude + currNotePower.supportingHarmonics.get(0).amplitude;
+//                        power = (float) (Math.atan(power - averageMean) / halfPi);
+//                        currNotePower.power = power;
+//                    }
 
                     Log.d("fundamentals", "*********************************************");
                     Log.d("fundamentals", "showing fundamentals: ");
@@ -688,16 +868,14 @@ public class MainActivity extends ActionBarActivity {
                     Log.d("fundamentals", "definite: ");
                     Log.d("fundamentals", "-------- ");
 
-                    for (int i = 0; i < definiteFunda.size(); i++) {
-                        Log.d("fundamentals", "freq: [" + lowFreqs[definiteFunda.get(i).note] * definiteFunda.get(i).multiple + " ] , supportCount = " + definiteFunda.get(i).supportCount + " , power: " + definiteFunda.get(i).power);
+                    for (int i = 0; i < foundCounter; i++) {
+//                        if(foundPeaks[i][PEAK_FUNDAMENTAL]>0)
+//                        {
+                        Log.d("fundamentals", "[note: " + foundPeaks[i][PEAK_NOTE] + " ] , [ freq: " +
+                                foundPeaks[i][PEAK_FREQ] + "] , [HarmPower: " + foundPeaks[i][PEAK_FUNDAMENTAL]
+                                + " ]");
 
-                    }
-
-                    Log.d("fundamentals", "not definite: ");
-                    Log.d("fundamentals", "------------- ");
-
-                    for (int i = 0; i < potentialFunda.size(); i++) {
-                        Log.d("fundamentals", "freq: [" + lowFreqs[potentialFunda.get(i).note] * potentialFunda.get(i).multiple + " ]");
+//                        }
                     }
 
 
@@ -739,13 +917,119 @@ public class MainActivity extends ActionBarActivity {
 //                        if (numPeaks == 100) break;
 //                    }
 
-
-                    float[] amplitudesDown2 = new float[bufferSize]; // downsample by half
-                    float[] amplitudesDown3 = new float[bufferSize]; // downsample by half
-//                    float[] amplitudesDown4 = new float[bufferSize]; // downsample by half
-//                    float[] amplitudesDown5 = new float[bufferSize]; // downsample by half
-
-
+//
+//                    float[] amplitudesDown2 = new float[bufferSize]; // downsample by half
+//                    float[] amplitudesDown3 = new float[bufferSize]; // downsample by half
+////                    float[] amplitudesDown4 = new float[bufferSize]; // downsample by half
+////                    float[] amplitudesDown5 = new float[bufferSize]; // downsample by half
+//
+//
+////                    for (int i = 0; i < amplitudesDown2.length / 2; i++) {
+////
+////                        amplitudesDown2[i] = amplitudes[i * 2];
+////                    }
+////                    for (int i = 0; i < amplitudesDown3.length / 3; i++) {
+////
+////                        amplitudesDown3[i] = amplitudes[i * 3];
+////                    }
+//////                    for (int i = 0; i < amplitudesDown3.length / 4; i++) {
+//////
+//////                        amplitudesDown4[i] = amplitudes[i * 4];
+//////                    }
+//////                    for (int i = 0; i < amplitudesDown3.length / 5; i++) {
+//////
+//////                        amplitudesDown5[i] = amplitudes[i * 5];
+//////                    }
+////                    max = 0;
+////
+////                    for (int i = 0; i < amplitudes.length / 2; i++) {
+////                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]);
+////                        max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
+////
+////                    }
+//
+//                    // leave only the peaks:
+//
+////                    for (int i = 1; i < amplitudes.length / 2; i++) {
+////
+////
+////                        /**
+////                         * NEXT IDEA:
+////                         * maybe if i checked and there is something bigger ahead, erase the current one!
+////                         */
+////                        // check some threshold and close values:
+////                        if (amplitudes[i] > amplitudes[i - 1]
+////                                && amplitudes[i] > amplitudes[i + 1]) {
+//////                            check for close range
+////                            boolean tallest = true;
+////                            // get start index and end index for peak checking:
+////                            int stIn = ((i - (int) (15 / fourierCoef)) < 0) ? i : (int) (15 / fourierCoef);
+////                            int endIn = ((i + (int) (15 / fourierCoef)) > amplitudes.length) ? amplitudes.length - i - 1 : (int) (15 / fourierCoef);
+////                            Log.d("DEBUGIS", "[for the freq: i = " + i + " - " + i * fourierCoef + " ]");
+////
+////                            for (int j = -stIn; j < stIn + endIn; j++) {
+//////                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
+////                                if (j != 0) {
+//////                                    Log.d("DEBUGIS", "[ "+0.1*finalAmplitudes[i]+" ] < [ "+ finalAmplitudes[i + j] + " ]");
+////
+////                                }
+////                                if (0.3*amplitudes[i] < amplitudes[i + j]) {
+////                                    if (j != 0) {
+////                                        finalAmplitudesBinary[i] = 0;
+////                                        tallest = false;
+////                                        break;
+////                                    }
+////
+////                                }
+////                            }
+////                            if (tallest) {
+////                                finalAmplitudesBinary[i] = 1;
+////                            }
+////                        }
+////                    }
+////                    int[] midiNotesCounter = new int[127];
+////
+////
+////                    for (int i = 0; i < finalAmplitudesBinary.length / 2; i++)
+////                    {
+////
+////                        if(finalAmplitudesBinary[i]==1)
+////                    {
+////                        midiNotesCounter[PitchConverter.hertzToMidiKey(i*fourierCoef)]++;
+////                    }
+////                        if(finalAmplitudesBinary[i*2]==1)
+////                        {
+////                            midiNotesCounter[PitchConverter.hertzToMidiKey(i*2*fourierCoef)]++;
+////                        }
+////                        if(i*3 < finalAmplitudesBinary.length)
+////                        {
+////                            if(finalAmplitudesBinary[i*3]==1)
+////                            {
+////                                midiNotesCounter[PitchConverter.hertzToMidiKey(i*3*fourierCoef)]++;
+////                            }
+////                        }
+////
+////
+////                    }
+////
+////
+////                    Log.d("BINARY", "****************************************");
+////                    Log.d("BINARY", "----------- found frequencies: ---------");
+////                    Log.d("BINARY", "");
+////                    Log.d("BINARY", "");
+////
+////                    for (int i = 0; i < midiNotesCounter.length; i++) {
+////                        if(midiNotesCounter[i]>0)
+////                        {
+////                            Log.d("BINARY", "note: [ " + i + " , counter: " + midiNotesCounter[i]+ " ]");
+////
+////                        }
+////
+////                    }
+////                    Log.d("BINARY", "");
+////
+////                    Log.d("BINARY", "****************************************");
+//
 //                    for (int i = 0; i < amplitudesDown2.length / 2; i++) {
 //
 //                        amplitudesDown2[i] = amplitudes[i * 2];
@@ -764,15 +1048,28 @@ public class MainActivity extends ActionBarActivity {
 ////                    }
 //                    max = 0;
 //
+//
 //                    for (int i = 0; i < amplitudes.length / 2; i++) {
 //                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]);
 //                        max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
 //
 //                    }
-
-                    // leave only the peaks:
-
-//                    for (int i = 1; i < amplitudes.length / 2; i++) {
+//
+////                    finalAmplitudes = amplitudes;
+//                    for (int i = 0; i < amplitudes.length / 2; i++) {
+//                        finalAmplitudes[i] /= max;
+//                    }
+////                    for (int i = 0; i < numPeaks; i++) {
+////
+////                        Log.d("found freqs" , "after multiplication, value at "+i+" is:" + finalAmplitudes[(int)peaks[i]]);
+////
+////
+////                    }
+//
+//                    double[][] finalPeaks = new double[100][2];
+//                    int numFinalPeaks = 0;
+//
+//                    for (int i = 1; i < finalAmplitudes.length / 2; i++) {
 //
 //
 //                        /**
@@ -780,14 +1077,15 @@ public class MainActivity extends ActionBarActivity {
 //                         * maybe if i checked and there is something bigger ahead, erase the current one!
 //                         */
 //                        // check some threshold and close values:
-//                        if (amplitudes[i] > amplitudes[i - 1]
-//                                && amplitudes[i] > amplitudes[i + 1]) {
+//                        if (finalAmplitudes[i] > 0.001
+//                                && finalAmplitudes[i] > finalAmplitudes[i - 1]
+//                                && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
 ////                            check for close range
-//                            boolean tallest = true;
+//                            boolean biggestPeak = true;
 //                            // get start index and end index for peak checking:
 //                            int stIn = ((i - (int) (15 / fourierCoef)) < 0) ? i : (int) (15 / fourierCoef);
-//                            int endIn = ((i + (int) (15 / fourierCoef)) > amplitudes.length) ? amplitudes.length - i - 1 : (int) (15 / fourierCoef);
-//                            Log.d("DEBUGIS", "[for the freq: i = " + i + " - " + i * fourierCoef + " ]");
+//                            int endIn = ((i + (int) (15 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (15 / fourierCoef);
+//                            Log.d("DEBUGIS", "[for the freq: i = " + i + " - " + i * fourierCoef + ", amp: " + finalAmplitudes[i] + " ]");
 //
 //                            for (int j = -stIn; j < stIn + endIn; j++) {
 ////                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
@@ -795,157 +1093,37 @@ public class MainActivity extends ActionBarActivity {
 ////                                    Log.d("DEBUGIS", "[ "+0.1*finalAmplitudes[i]+" ] < [ "+ finalAmplitudes[i + j] + " ]");
 //
 //                                }
-//                                if (0.3*amplitudes[i] < amplitudes[i + j]) {
+//
+//                                if (0.1 * finalAmplitudes[i] < finalAmplitudes[i + j]) {
 //                                    if (j != 0) {
-//                                        finalAmplitudesBinary[i] = 0;
-//                                        tallest = false;
+//                                        finalAmplitudes[i] = 0;
+//                                        biggestPeak = false;
 //                                        break;
 //                                    }
 //
 //                                }
 //                            }
-//                            if (tallest) {
-//                                finalAmplitudesBinary[i] = 1;
+//
+//                            if (biggestPeak) {
+//                                Log.d("found freqs FINAL", "i =  " + i + " freq: " + (i) * fourierCoef + " amp: " + finalAmplitudes[i]);
+//
+//                                finalPeaks[numFinalPeaks][0] = i * fourierCoef;
+//                                finalPeaks[numFinalPeaks][1] = finalAmplitudes[i];
+//
+//                                numFinalPeaks++;
 //                            }
-//                        }
-//                    }
-//                    int[] midiNotesCounter = new int[127];
 //
-//
-//                    for (int i = 0; i < finalAmplitudesBinary.length / 2; i++)
-//                    {
-//
-//                        if(finalAmplitudesBinary[i]==1)
-//                    {
-//                        midiNotesCounter[PitchConverter.hertzToMidiKey(i*fourierCoef)]++;
-//                    }
-//                        if(finalAmplitudesBinary[i*2]==1)
-//                        {
-//                            midiNotesCounter[PitchConverter.hertzToMidiKey(i*2*fourierCoef)]++;
-//                        }
-//                        if(i*3 < finalAmplitudesBinary.length)
-//                        {
-//                            if(finalAmplitudesBinary[i*3]==1)
-//                            {
-//                                midiNotesCounter[PitchConverter.hertzToMidiKey(i*3*fourierCoef)]++;
-//                            }
-//                        }
-//
-//
-//                    }
-//
-//
-//                    Log.d("BINARY", "****************************************");
-//                    Log.d("BINARY", "----------- found frequencies: ---------");
-//                    Log.d("BINARY", "");
-//                    Log.d("BINARY", "");
-//
-//                    for (int i = 0; i < midiNotesCounter.length; i++) {
-//                        if(midiNotesCounter[i]>0)
-//                        {
-//                            Log.d("BINARY", "note: [ " + i + " , counter: " + midiNotesCounter[i]+ " ]");
 //
 //                        }
-//
+////                        Log.d("DEBUGIS", "******************************]");
+////
+////                        for( int t = 0 ; t <numFinalPeaks ; t++)
+////                        {
+////                            Log.d("DEBUGIS", "[ "+finalPeaks[t][0]+" ]");
+////
+////                        }
+//                        if (numFinalPeaks > 98) break;
 //                    }
-//                    Log.d("BINARY", "");
-//
-//                    Log.d("BINARY", "****************************************");
-
-                    for (int i = 0; i < amplitudesDown2.length / 2; i++) {
-
-                        amplitudesDown2[i] = amplitudes[i * 2];
-                    }
-                    for (int i = 0; i < amplitudesDown3.length / 3; i++) {
-
-                        amplitudesDown3[i] = amplitudes[i * 3];
-                    }
-//                    for (int i = 0; i < amplitudesDown3.length / 4; i++) {
-//
-//                        amplitudesDown4[i] = amplitudes[i * 4];
-//                    }
-//                    for (int i = 0; i < amplitudesDown3.length / 5; i++) {
-//
-//                        amplitudesDown5[i] = amplitudes[i * 5];
-//                    }
-                    max = 0;
-
-
-                    for (int i = 0; i < amplitudes.length / 2; i++) {
-                        finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]);
-                        max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
-
-                    }
-
-//                    finalAmplitudes = amplitudes;
-                    for (int i = 0; i < amplitudes.length / 2; i++) {
-                        finalAmplitudes[i] /= max;
-                    }
-//                    for (int i = 0; i < numPeaks; i++) {
-//
-//                        Log.d("found freqs" , "after multiplication, value at "+i+" is:" + finalAmplitudes[(int)peaks[i]]);
-//
-//
-//                    }
-
-                    double[][] finalPeaks = new double[100][2];
-                    int numFinalPeaks = 0;
-
-                    for (int i = 1; i < finalAmplitudes.length / 2; i++) {
-
-
-                        /**
-                         * NEXT IDEA:
-                         * maybe if i checked and there is something bigger ahead, erase the current one!
-                         */
-                        // check some threshold and close values:
-                        if (finalAmplitudes[i] > 0.001
-                                && finalAmplitudes[i] > finalAmplitudes[i - 1]
-                                && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
-//                            check for close range
-                            boolean biggestPeak = true;
-                            // get start index and end index for peak checking:
-                            int stIn = ((i - (int) (15 / fourierCoef)) < 0) ? i : (int) (15 / fourierCoef);
-                            int endIn = ((i + (int) (15 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (15 / fourierCoef);
-                            Log.d("DEBUGIS", "[for the freq: i = " + i + " - " + i * fourierCoef + ", amp: " + finalAmplitudes[i] + " ]");
-
-                            for (int j = -stIn; j < stIn + endIn; j++) {
-//                                  Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
-                                if (j != 0) {
-//                                    Log.d("DEBUGIS", "[ "+0.1*finalAmplitudes[i]+" ] < [ "+ finalAmplitudes[i + j] + " ]");
-
-                                }
-
-                                if (0.1 * finalAmplitudes[i] < finalAmplitudes[i + j]) {
-                                    if (j != 0) {
-                                        finalAmplitudes[i] = 0;
-                                        biggestPeak = false;
-                                        break;
-                                    }
-
-                                }
-                            }
-
-                            if (biggestPeak) {
-                                Log.d("found freqs FINAL", "i =  " + i + " freq: " + (i) * fourierCoef + " amp: " + finalAmplitudes[i]);
-
-                                finalPeaks[numFinalPeaks][0] = i * fourierCoef;
-                                finalPeaks[numFinalPeaks][1] = finalAmplitudes[i];
-
-                                numFinalPeaks++;
-                            }
-
-
-                        }
-//                        Log.d("DEBUGIS", "******************************]");
-//
-//                        for( int t = 0 ; t <numFinalPeaks ; t++)
-//                        {
-//                            Log.d("DEBUGIS", "[ "+finalPeaks[t][0]+" ]");
-//
-//                        }
-                        if (numFinalPeaks > 98) break;
-                    }
 
                     // check for peak again after HPS:
 //                    for (int i = 0; i < numPeaks; i++) {
@@ -956,23 +1134,23 @@ public class MainActivity extends ActionBarActivity {
 //
 //
 //                    }
-                    double temp0 = 0, temp1 = 0;
-
-                    for (int i = 0; i < numFinalPeaks; i++) {
-                        for (int j = 1; j < (numFinalPeaks - i); j++) {
-
-                            if (finalPeaks[j - 1][1] > finalPeaks[j][1]) {
-                                //swap the elements!
-                                temp0 = finalPeaks[j - 1][0];
-                                temp1 = finalPeaks[j - 1][1];
-                                finalPeaks[j - 1][0] = finalPeaks[j][0];
-                                finalPeaks[j - 1][1] = finalPeaks[j][1];
-                                finalPeaks[j][0] = temp0;
-                                finalPeaks[j][1] = temp1;
-                            }
-
-                        }
-                    }
+//                    double temp0 = 0, temp1 = 0;
+//
+//                    for (int i = 0; i < numFinalPeaks; i++) {
+//                        for (int j = 1; j < (numFinalPeaks - i); j++) {
+//
+//                            if (finalPeaks[j - 1][1] > finalPeaks[j][1]) {
+//                                //swap the elements!
+//                                temp0 = finalPeaks[j - 1][0];
+//                                temp1 = finalPeaks[j - 1][1];
+//                                finalPeaks[j - 1][0] = finalPeaks[j][0];
+//                                finalPeaks[j - 1][1] = finalPeaks[j][1];
+//                                finalPeaks[j][0] = temp0;
+//                                finalPeaks[j][1] = temp1;
+//                            }
+//
+//                        }
+//                    }
 
 
                     String Sfreqs = "";
@@ -981,10 +1159,10 @@ public class MainActivity extends ActionBarActivity {
 //                    Log.d("CORRECT", "");
 //                    Log.d("CORRECT", "");
 
-                    for (int i = 0; i < numFinalPeaks; i++) {
+                    for (int i = 0; i < foundCounter; i++) {
 //                        Log.d("CORRECT", "note: [ " + PitchConverter.hertzToMidiKey(finalPeaks[i][0]) + " ]  , freq: [ " + finalPeaks[i][0] + " ] ,  amp: [ " + finalPeaks[i][1] + " ]");
 
-                        Sfreqs += " , " + Math.round(finalPeaks[i][0]);
+                        Sfreqs += " , " + Math.round(foundPeaks[i][PEAK_FREQ]);
                     }
 //                    Log.d("CORRECT", "");
 
@@ -994,17 +1172,17 @@ public class MainActivity extends ActionBarActivity {
                     final String foundFreqsNum = Sfreqs;
 
                     boolean NoteCorrect = false, allCorrect = false;
-                    for (int i = 0; i < expNotes.length; i++) {
-                        for (int j = 0; j < numFinalPeaks; j++) {
-//                            Log.d("CORRECT",PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])) + "  -  " + finalPeaks[j][0]  );
-
-                            if (Math.abs(PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])) - finalPeaks[j][0]) < 2) {
-                                NoteCorrect = true;
-                                break;
-                            }
-                        }
-                        if (NoteCorrect) break;
-                    }
+//                    for (int i = 0; i < expNotes.length; i++) {
+//                        for (int j = 0; j < numFinalPeaks; j++) {
+////                            Log.d("CORRECT",PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])) + "  -  " + finalPeaks[j][0]  );
+//
+//                            if (Math.abs(PitchConverter.midiKeyToHertz((int) (expNotes[0][FREQ])) - finalPeaks[j][0]) < 2) {
+//                                NoteCorrect = true;
+//                                break;
+//                            }
+//                        }
+//                        if (NoteCorrect) break;
+//                    }
 
                     final boolean correctFound = NoteCorrect;
 
@@ -1013,16 +1191,16 @@ public class MainActivity extends ActionBarActivity {
                         public void run() {
                             TextView text = (TextView) findViewById(R.id.newPitch);
                             text.setText("notes freqs found: " + foundFreqsNum);
-
-                            TextView correctness = (TextView) findViewById(R.id.cor_note);
-                            if (correctFound) {
-                                correctness.setText("Correct note!");
-                                correctness.setTextColor(Color.GREEN);
-
-                            } else {
-                                correctness.setTextColor(Color.RED);
-                                correctness.setText("wrong note!");
-                            }
+//
+//                            TextView correctness = (TextView) findViewById(R.id.cor_note);
+//                            if (correctFound) {
+//                                correctness.setText("Correct note!");
+//                                correctness.setTextColor(Color.GREEN);
+//
+//                            } else {
+//                                correctness.setTextColor(Color.RED);
+//                                correctness.setText("wrong note!");
+//                            }
                         }
                     });
 //                    }
@@ -1153,6 +1331,49 @@ public class MainActivity extends ActionBarActivity {
         return new Peak((int) k, amplitude);
     }
 
+    /**
+     * The function returns the average of the the peak surrounding.
+     *
+     * @param location
+     * @param tempSoltuion
+     * @param fourierCoef
+     * @return
+     */
+    private float getAverage(int location, float[] tempSoltuion, double fourierCoef) {
+
+        double n = 12 * (Math.log((location * fourierCoef / 440))/Math.log(2)) + 49;
+
+        // find the next note in relation to the previous peak
+        double nextNote = (Math.pow(2, (n - 46) / 12)) * 440;
+        double prevNote = (Math.pow(2, (n - 52) / 12)) * 440;
+
+        int prevI = (int) Math.round(prevNote / (fourierCoef));
+        int nextI = (int) Math.round(nextNote / (fourierCoef));
+
+        float tempAv = 0;
+        float tempCount = 0;
+        if (location > 10 && (location + 10) < tempSoltuion.length) {
+
+
+//            average left of peak
+            for (int i = prevI; i <= location ; i++) {
+                if (tempSoltuion[i] > 0.005) {
+                    tempAv += tempSoltuion[i];
+                    tempCount++;
+                }
+            }
+            //            average right of peak
+            for (int i = location + 3; i <= nextI; i++) {
+                if (tempSoltuion[i] > 0.005) {
+                    tempAv += tempSoltuion[i];
+                    tempCount++;
+                }
+            }
+        }
+        tempAv /= tempCount;
+        return tempAv;
+
+    }
 
     private void getMidi() {
         try {

@@ -247,7 +247,7 @@ public class MidiPlayer extends LinearLayout {
         this.setPadding(0, 0, 0, 0);
         CreateButtons();
 
-       activity = (Activity) context;
+        activity = (Activity) context;
         int screenwidth = activity.getWindowManager().getDefaultDisplay().getWidth();
         int screenheight = activity.getWindowManager().getDefaultDisplay().getHeight();
         Point newsize = MidiPlayer.getPreferredSize(screenwidth, screenheight);
@@ -425,7 +425,7 @@ public class MidiPlayer extends LinearLayout {
         /* If we're paused, and using the same midi file, redraw the
          * highlighted notes.
          */
-        if ((file == midifile && midifile != null &&  timeCounter.playstate == paused)) {
+        if ((file == midifile && midifile != null && timeCounter.playstate == paused)) {
             options = opt;
             sheet = s;
             Log.d("shading", "123456789");
@@ -450,7 +450,7 @@ public class MidiPlayer extends LinearLayout {
      */
     Runnable ReShade = new Runnable() {
         public void run() {
-            if ( timeCounter.playstate == paused ||  timeCounter.playstate == stopped) {
+            if (timeCounter.playstate == paused || timeCounter.playstate == stopped) {
 //                Log.d("shading" , "9999999595988");
 
                 sheet.ShadeNotes((int) currentPulseTime, (int) -10, false);
@@ -569,7 +569,7 @@ public class MidiPlayer extends LinearLayout {
         listenThreadCreator creator = new listenThreadCreator(midifile, new callBack());
         if (midifile == null || sheet == null || numberTracks() == 0) {
             return;
-        } else if ( timeCounter.playstate == initStop ||  timeCounter.playstate == initPause ||  timeCounter.playstate == playing) {
+        } else if (timeCounter.playstate == initStop || timeCounter.playstate == initPause || timeCounter.playstate == playing) {
             return;
         }
         // playstate is stopped or paused
@@ -597,7 +597,6 @@ public class MidiPlayer extends LinearLayout {
             timeCounter.firstRun = true;
             sheet.cleanCounters();
             threadRunning = true;
-
 
 
             listThread = creator.getThread();
@@ -637,7 +636,7 @@ public class MidiPlayer extends LinearLayout {
                 }
                 startPulseTime = currentPulseTime;
                 options.pauseTime = (int) (currentPulseTime - options.shifttime);
-            } else if ( timeCounter.playstate == paused) {
+            } else if (timeCounter.playstate == paused) {
                 startPulseTime = currentPulseTime;
                 options.pauseTime = (int) (currentPulseTime - options.shifttime);
             } else {
@@ -681,7 +680,7 @@ public class MidiPlayer extends LinearLayout {
 
         if (midifile == null || sheet == null || numberTracks() == 0) {
             return;
-        } else if ( timeCounter.playstate == playing) {
+        } else if (timeCounter.playstate == playing) {
             timeCounter.playstate = initPause;
             return;
         }
@@ -695,15 +694,15 @@ public class MidiPlayer extends LinearLayout {
      */
     void Stop() {
         this.setVisibility(View.VISIBLE);
-        if (midifile == null || sheet == null ||  timeCounter.playstate == stopped) {
+        if (midifile == null || sheet == null || timeCounter.playstate == stopped) {
             return;
         }
 
-        if ( timeCounter.playstate == initPause ||  timeCounter.playstate == initStop ||  timeCounter.playstate == playing) {
+        if (timeCounter.playstate == initPause || timeCounter.playstate == initStop || timeCounter.playstate == playing) {
             /* Wait for timer to finish */
             timeCounter.playstate = initStop;
             DoStop();
-        } else if ( timeCounter.playstate == paused) {
+        } else if (timeCounter.playstate == paused) {
 
             DoStop();
         }
@@ -737,7 +736,7 @@ public class MidiPlayer extends LinearLayout {
      * and re-shade the sheet music.
      */
     void Rewind() {
-        if (midifile == null || sheet == null ||  timeCounter.playstate != paused) {
+        if (midifile == null || sheet == null || timeCounter.playstate != paused) {
             return;
         }
 
@@ -769,7 +768,7 @@ public class MidiPlayer extends LinearLayout {
         if (midifile == null || sheet == null) {
             return;
         }
-        if ( timeCounter.playstate != paused &&  timeCounter.playstate != stopped) {
+        if (timeCounter.playstate != paused && timeCounter.playstate != stopped) {
             return;
         }
         timeCounter.playstate = paused;
@@ -803,12 +802,12 @@ public class MidiPlayer extends LinearLayout {
             if (midifile == null || sheet == null) {
                 timeCounter.playstate = stopped;
                 return;
-            } else if ( timeCounter.playstate == stopped ||  timeCounter.playstate == paused) {
+            } else if (timeCounter.playstate == stopped || timeCounter.playstate == paused) {
             /* This case should never happen */
                 return;
-            } else if ( timeCounter.playstate == initStop) {
+            } else if (timeCounter.playstate == initStop) {
                 return;
-            } else if ( timeCounter.playstate == playing) {
+            } else if (timeCounter.playstate == playing) {
                 long msec = SystemClock.uptimeMillis() - startTime;
                 prevPulseTime = currentPulseTime;
                 currentPulseTime = startPulseTime + msec * pulsesPerMsec;
@@ -834,7 +833,7 @@ public class MidiPlayer extends LinearLayout {
                 piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
                 timer.postDelayed(TimerCallback, 100);
                 return;
-            } else if ( timeCounter.playstate == initPause) {
+            } else if (timeCounter.playstate == initPause) {
                 long msec = SystemClock.uptimeMillis() - startTime;
                 StopSound();
 
@@ -903,12 +902,12 @@ public class MidiPlayer extends LinearLayout {
             if (midifile == null || sheet == null) {
                 timeCounter.playstate = stopped;
                 return;
-            } else if ( timeCounter.playstate == stopped ||  timeCounter.playstate == paused) {
+            } else if (timeCounter.playstate == stopped || timeCounter.playstate == paused) {
             /* This case should never happen */
                 return;
-            } else if ( timeCounter.playstate == initStop) {
+            } else if (timeCounter.playstate == initStop) {
                 return;
-            } else if ( timeCounter.playstate == playing) {
+            } else if (timeCounter.playstate == playing) {
 //                    long msec = SystemClock.uptimeMillis() - startTime;
                 prevPulseTime = Math.round(currentPulseTime);
 
@@ -937,7 +936,7 @@ public class MidiPlayer extends LinearLayout {
                 piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
 //                    timer.postDelayed(TimerCallback, 312);
                 return;
-            } else if ( timeCounter.playstate == initPause) {
+            } else if (timeCounter.playstate == initPause) {
                 Log.d("shading", "1111111111111111111");
 
                 long msec = SystemClock.uptimeMillis() - startTime;
@@ -1006,9 +1005,9 @@ public class MidiPlayer extends LinearLayout {
             return new Thread(dispatcher, "Audio Dispatcher");
 
         }
-        public Countdown getCountDown()
-        {
-            return new Countdown(BPM ,getThread() , activity );
+
+        public Countdown getCountDown() {
+            return new Countdown(BPM, getThread(), activity);
         }
 
         private void getTempo() {
@@ -1035,7 +1034,7 @@ public class MidiPlayer extends LinearLayout {
 
                 float[] amplitudes = new float[bufferSize];
                 double[][] finalPeaks;
-
+                double[][] finalizedPeaks;
                 FFT fft = new FFT(bufferSize);
                 //            float[] amplitudes = new float[bufferSize / 2];
                 float[] finalAmplitudes = new float[bufferSize];
@@ -1062,9 +1061,7 @@ public class MidiPlayer extends LinearLayout {
 
                     if (timeCounter.firstRun) {
 
-//                            timeCounter.startTime = System.nanoTime();
-//                            Log.d("thread" , "starting frop the top!");
-
+//
                         startTime = System.nanoTime();
                         timeCounter.firstRun = false;
                         timeElapsed = 0;
@@ -1182,92 +1179,227 @@ public class MidiPlayer extends LinearLayout {
                         float max = 0;
                         float freq = 0;
                         int numPeaks = 0;
-                        double[] peaks = new double[100];
 
 
                         for (int i = 0; i < amplitudes.length / 2; i++) {
                             amplitudes[i] = amplitudes[i] * amplitudes[i];
+                            amplitudes[i] = (amplitudes[i]) * noteDB[i];
+                            max = (max < amplitudes[i]) ? amplitudes[i] : max;
+
 //                        max = (max < amplitudes[i]) ? amplitudes[i] : max;
                         }
+
+//                        *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+//                        *-*-*-*-*-*-*-*-* Matlab Addon*-*-*-*-*-*-*-*-*-*-
+//                        *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+//
+                        finalizedPeaks = new double[100][2];
+
+                        double[][] peaks = new double[100][3];
+                        float[] matlabAlgo = amplitudes;
+                        boolean minorPeak = false;
+                        int peakIdx = 0;
+                        for (int i = 0; i < matlabAlgo.length / 2; i++) {
+                            matlabAlgo[i] /=max;
+                            if (matlabAlgo[i] > 0.01
+                                    && matlabAlgo[i] > matlabAlgo[i - 1]
+                                    && matlabAlgo[i] > matlabAlgo[i + 1]) {
+                                if (peakIdx > 0) {
+                                    double n = 12 * Math.log(peaks[peakIdx - 1][1] / 440) + 49;
+                                    double nextNote = Math.pow(2, (n - 48) / 12) * 440;
+                                    int diff = (int) (nextNote - peaks[peakIdx - 1][1]);
+
+
+                                    if (Math.abs((i) * fourierCoef - peaks[peakIdx - 1][0]) < diff * 0.7) {
+                                        if (matlabAlgo[i] > peaks[peakIdx - 1][1]) {
+                                            peakIdx--;
+                                        } else {
+                                            minorPeak = true;
+                                        }
+                                    }
+
+                                }
+
+
+                                if(!minorPeak)
+                                {
+                                    double newFreq = i*fourierCoef;
+
+                                    // limits for search:
+                                    double n = 12 * Math.log(i*fourierCoef / 440) + 49;
+                                    double nextNote = Math.pow(2, (n - 47) / 12) * 440;
+                                    double prevNote = Math.pow(2, (n - 51) / 12) * 440;
+                                   int prevI = Math.round((float) (prevNote/(fourierCoef*2)));
+                                   int nextI = Math.round((float)  (nextNote/(fourierCoef*2)));
+
+                                    if(i>10 && (i+10)<matlabAlgo.length)
+                                    {
+                                        double tmepAv = 0;
+                                        int tempCount = 0;
+                                        for (int avIdx = prevI ; avIdx< i-2 ; avIdx++)
+                                        {
+
+                                            if(matlabAlgo[avIdx]>0)
+                                            {
+                                                tmepAv+= matlabAlgo[avIdx];
+                                                tempCount++;
+                                            }
+                                        }
+                                        for (int avIdx = i+3 ; avIdx< nextI ; avIdx++)
+                                        {
+
+                                            if(matlabAlgo[avIdx]>0)
+                                            {
+                                                tmepAv+= matlabAlgo[avIdx];
+                                                tempCount++;
+                                            }
+                                        }
+
+                                        tmepAv /=tempCount;
+                                        double ratio = (tempCount>0)?matlabAlgo[i]/tmepAv:0;
+                                        peaks[peakIdx][0] = newFreq;
+                                        peaks[peakIdx][1] = i;
+                                        peaks[peakIdx][2] = ratio;
+                                        peakIdx++;
+                                    }
+
+                                }
+
+
+
+
+
+
+                            }
+                            if(peakIdx>60)
+                            {
+                                break;
+                            }
+                        }
+
+
+
+//                        get peak average:
+                        int numOfPeaks = 0;
+                        double peakAverage = 0;
+
+                        for (int i = 0 ; i<peakIdx ; i++)
+                        {
+                            peakAverage+=peaks[i][1];
+                        }
+                        peakAverage/=(peakIdx-1);
+
+                        int finalizedPeaksIdx= 0;
+                        for (int i = 0 ; i<peakIdx ; i++)
+                        {
+                            if(peaks[i][2]>peakAverage)
+                            {
+                                for (int j = 0 ; i<peakIdx ; i++)
+                                {
+                                    if(((Math.abs(peaks[i][0] - peaks[j][0]/2)<5) && peaks[j][1]>peakAverage/4 )||
+                                            ((Math.abs(peaks[i][0] - peaks[j][0]/2)<5) && peaks[j][2]/10>0.4 ))
+                                    {
+                                        if(peaks[i][3]/10<0.4)
+                                        {
+                                            finalizedPeaks[finalizedPeaksIdx][0]=peaks[i][0];
+                                            finalizedPeaks[finalizedPeaksIdx][1]=1;
+                                        }
+                                        else
+                                        {
+                                            finalizedPeaks[finalizedPeaksIdx][0]=peaks[i][0];
+                                            finalizedPeaks[finalizedPeaksIdx][1]=0;
+                                        }
+                                        finalizedPeaksIdx++;
+                                    }
+                                }
+
+                            }
+                        }
+
+//
+//
+//
+//                  *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+//                        *-*-*-*-*-*-*-*-* Matlab Addon end *-*-*-*-*-*-*-*-*-*-
+//                        *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+
+
 //                            Log.d("max spec amp", "spec max: " + max);
 
 //                    --------------------------------------------------------------
 //                    -------------------------  HPF  ------------------------------
 //                    --------------------------------------------------------------
 
-                        float[] amplitudesDown2 = new float[bufferSize]; // downsample by half
-                        float[] amplitudesDown3 = new float[bufferSize]; // downsample by half
-//                    float[] amplitudesDown4 = new float[bufferSize]; // downsample by half
-//                    float[] amplitudesDown5 = new float[bufferSize]; // downsample by half
-
-
-                        for (int i = 0; i < amplitudes.length / 2; i++) {
-                            amplitudes[i] = (amplitudes[i]) * noteDB[i];
-                        }
-
-                        for (int i = 0; i < amplitudesDown2.length / 2; i++) {
-
-                            amplitudesDown2[i] = amplitudes[i * 2];
-                        }
-                        for (int i = 0; i < amplitudesDown3.length / 3; i++) {
-
-                            amplitudesDown3[i] = amplitudes[i * 3];
-                        }
-//                    for (int i = 0; i < amplitudesDown3.length / 4; i++) {
+//                        float[] amplitudesDown2 = new float[bufferSize]; // downsample by half
+//                        float[] amplitudesDown3 = new float[bufferSize]; // downsample by half
+////                    float[] amplitudesDown4 = new float[bufferSize]; // downsample by half
+////                    float[] amplitudesDown5 = new float[bufferSize]; // downsample by half
 //
-//                        amplitudesDown4[i] = amplitudes[i * 4];
-//                    }
-//                    for (int i = 0; i < amplitudesDown3.length / 5; i++) {
 //
-//                        amplitudesDown5[i] = amplitudes[i * 5];
-//                    }
-                        max = 0;
-                        for (int i = 0; i < amplitudes.length / 2; i++) {
-                            finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]);
-                            max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
-                        }
-//                    finalAmplitudes = amplitudes;
-                        for (int i = 0; i < amplitudes.length / 2; i++) {
-                            finalAmplitudes[i] /= max;
-                        }
-                        finalPeaks = new double[100][2];
-                        int numFinalPeaks = 0;
-
-                        for (int i = 1; i < finalAmplitudes.length / 2; i++) {
-
-                            // check some threshold and close values:
-                            if (finalAmplitudes[i] > 0.00001
-                                    && finalAmplitudes[i] > finalAmplitudes[i - 1]
-                                    && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
-//                            check for close range
-                                boolean biggestPeak = true;
-                                // get start index and end index for peak checking:
-                                int stIn = ((i - (int) (15 / fourierCoef)) < 0) ? i : (int) (15 / fourierCoef);
-                                int endIn = ((i + (int) (15 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (15 / fourierCoef);
-                                for (int j = -stIn; j < stIn + endIn; j++) {
-                                Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i-1) * fourierCoef + " amp: " + finalAmplitudes[i]);
-
-                                    if(j!=0)
-                                    {
-                                        if (0.1*finalAmplitudes[i] < finalAmplitudes[i + j]) {
-                                            biggestPeak = false;
-                                            break;
-                                        }
-                                    }
-
-                                }
-
-                                if (biggestPeak) {
-//                                Log.d("found freqs FINAL", "i =  " + i + " freq: " + (i) * fourierCoef + " amp: " + finalAmplitudes[i]);
-                                    finalPeaks[numFinalPeaks][0] = i * fourierCoef;
-                                    finalPeaks[numFinalPeaks][1] = finalAmplitudes[i];
-                                    numFinalPeaks++;
-                                }
-
-
-                            }
-                            if (numFinalPeaks > 98) break;
-                        }
+//
+//
+//                        for (int i = 0; i < amplitudesDown2.length / 2; i++) {
+//
+//                            amplitudesDown2[i] = amplitudes[i * 2];
+//                        }
+//                        for (int i = 0; i < amplitudesDown3.length / 3; i++) {
+//
+//                            amplitudesDown3[i] = amplitudes[i * 3];
+//                        }
+////                    for (int i = 0; i < amplitudesDown3.length / 4; i++) {
+////
+////                        amplitudesDown4[i] = amplitudes[i * 4];
+////                    }
+////                    for (int i = 0; i < amplitudesDown3.length / 5; i++) {
+////
+////                        amplitudesDown5[i] = amplitudes[i * 5];
+////                    }
+//                        max = 0;
+//                        for (int i = 0; i < amplitudes.length / 2; i++) {
+//                            finalAmplitudes[i] = (amplitudes[i] * amplitudesDown2[i] * amplitudesDown3[i]);
+//                            max = (max < finalAmplitudes[i]) ? finalAmplitudes[i] : max;
+//                        }
+////                    finalAmplitudes = amplitudes;
+//                        for (int i = 0; i < amplitudes.length / 2; i++) {
+//                            finalAmplitudes[i] /= max;
+//                        }
+//                        finalPeaks = new double[100][2];
+//                        int numFinalPeaks = 0;
+//
+//                        for (int i = 1; i < finalAmplitudes.length / 2; i++) {
+//
+//                            // check some threshold and close values:
+//                            if (finalAmplitudes[i] > 0.00001
+//                                    && finalAmplitudes[i] > finalAmplitudes[i - 1]
+//                                    && finalAmplitudes[i] > finalAmplitudes[i + 1]) {
+////                            check for close range
+//                                boolean biggestPeak = true;
+//                                // get start index and end index for peak checking:
+//                                int stIn = ((i - (int) (15 / fourierCoef)) < 0) ? i : (int) (15 / fourierCoef);
+//                                int endIn = ((i + (int) (15 / fourierCoef)) > finalAmplitudes.length) ? finalAmplitudes.length - i - 1 : (int) (15 / fourierCoef);
+//                                for (int j = -stIn; j < stIn + endIn; j++) {
+//                                    Log.d("DEBUG", "length is: + i =  " + i + " freq: " + (i - 1) * fourierCoef + " amp: " + finalAmplitudes[i]);
+//
+//                                    if (j != 0) {
+//                                        if (0.1 * finalAmplitudes[i] < finalAmplitudes[i + j]) {
+//                                            biggestPeak = false;
+//                                            break;
+//                                        }
+//                                    }
+//
+//                                }
+//
+//                                if (biggestPeak) {
+////                                Log.d("found freqs FINAL", "i =  " + i + " freq: " + (i) * fourierCoef + " amp: " + finalAmplitudes[i]);
+//                                    finalPeaks[numFinalPeaks][0] = i * fourierCoef;
+//                                    finalPeaks[numFinalPeaks][1] = finalAmplitudes[i];
+//                                    numFinalPeaks++;
+//                                }
+//
+//
+//                            }
+//                            if (numFinalPeaks > 98) break;
+//                        }
 
                         // bubble sort:
                         ////                        double temp0 = 0, temp1 = 0;
@@ -1288,27 +1420,27 @@ public class MidiPlayer extends LinearLayout {
 //                            }
 //                        }
 
-                        int n = numFinalPeaks;
-                        double temp0 = 0, temp1 = 0;
-
-                        for (int i = 0; i < n; i++) {
-                            for (int j = 1; j < (n - i); j++) {
-
-                                if (finalPeaks[j - 1][1] < finalPeaks[j][1]) {
-                                    //swap the elements!
-                                    temp0 = finalPeaks[j - 1][0];
-                                    temp1 = finalPeaks[j - 1][1];
-
-                                    finalPeaks[j - 1][0] = finalPeaks[j][0];
-                                    finalPeaks[j - 1][1] = finalPeaks[j][1];
-
-                                    finalPeaks[j][0] = temp0;
-                                    finalPeaks[j][1] = temp1;
-
-                                }
-
-                            }
-                        }
+//                        int n = numFinalPeaks;
+//                        double temp0 = 0, temp1 = 0;
+//
+//                        for (int i = 0; i < n; i++) {
+//                            for (int j = 1; j < (n - i); j++) {
+//
+//                                if (finalPeaks[j - 1][1] < finalPeaks[j][1]) {
+//                                    //swap the elements!
+//                                    temp0 = finalPeaks[j - 1][0];
+//                                    temp1 = finalPeaks[j - 1][1];
+//
+//                                    finalPeaks[j - 1][0] = finalPeaks[j][0];
+//                                    finalPeaks[j - 1][1] = finalPeaks[j][1];
+//
+//                                    finalPeaks[j][0] = temp0;
+//                                    finalPeaks[j][1] = temp1;
+//
+//                                }
+//
+//                            }
+//                        }
 
 
 //                    String Sfreqs = "";
@@ -1357,7 +1489,7 @@ public class MidiPlayer extends LinearLayout {
 //                    }
                     }
 
-                    callback.setPeaks(finalPeaks, timeElapsed / p2s, silence);
+                    callback.setPeaks(finalizedPeaks, timeElapsed / p2s, silence);
                     callback.run();
 
 //                runOnUiThread(new Runnable() {
