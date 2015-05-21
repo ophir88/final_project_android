@@ -47,6 +47,10 @@ public class Staff {
     public final static int PEAK_PLAYED = 5;
     public final static int MAX_PEAKS = 60;
 
+
+    ArrayList<Integer> prevExtraNotes = new ArrayList<Integer>();
+    ArrayList<Integer> extraNotes = new ArrayList<Integer>();
+
     ArrayList<MusicSymbol> symbols;
     /**
      * The music symbols in this staff
@@ -576,7 +580,6 @@ public class Staff {
                             for (int peakIndex = 0; peakIndex < peaks.length; peakIndex++) {
                                 if(peaks[peakIndex][PEAK_NOTE]==0) break;
                                 Log.d("notess", " " + peaks[peakIndex][PEAK_NOTE]);
-
                             }
 
 
@@ -595,7 +598,10 @@ public class Staff {
                                 int peak = (int) peaks[peakIndex][PEAK_NOTE];
                                 if (noteNumber%12 == peak%12) {
                                     peaks[peakIndex][PEAK_PLAYED]++;
+
                                     note.playCount++;
+                                    Log.d("notess", "==== found " + noteNumber + ": [" + note.playCount + "/"+note.expCount+"]");
+
 //                                    Log.d("chordPeaks", "found peak!");
                                     break;
 
@@ -640,17 +646,30 @@ public class Staff {
                                     Log.d("extra", "found extra note: " + peaks[peakIndex][PEAK_NOTE]);
                                     Log.d("extra", "looking for fundamental:");
                                     boolean foundFundamental = false;
+
 //                                    look for all notes that were supposed to be played:
 
                                     Log.d("extra", "looking for note in " + staffs.size() + " staffs");
 
                                     for (Staff staff : staffs) {
                                         ArrayList<Integer> tempSymbols = getCurrentSymbols.getSymbols(currentPulseTime, prevPulseTime, staff);
-                                        Log.d("extra", "current staff has " + tempSymbols.size() + "notes playing");
+                                        Log.d("extra", "current staff has " + tempSymbols.size() + "notes playing:");
+
 
                                         for (int noteNumber : tempSymbols) {
+                                            Log.d("extra", "" + noteNumber);
+
                                             // if we found a note which is a harmonic of it, it's ok.
-                                            if (peaks[peakIndex][PEAK_NOTE] % 12 == noteNumber % 12) {
+                                            if (Math.abs(PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE])/2 - PitchConverter.midiKeyToHertz(noteNumber))<6
+                                                    ||
+                                                    Math.abs( PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE])/3 - PitchConverter.midiKeyToHertz(noteNumber))<6
+                                                    ||
+                                                    Math.abs(PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE])/4 - PitchConverter.midiKeyToHertz(noteNumber))<6
+                                                    ||
+                                                    Math.abs(PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE])/5 - PitchConverter.midiKeyToHertz(noteNumber))<6
+                                                    ||
+                                                    peaks[peakIndex][PEAK_NOTE]%12 == noteNumber%12
+                                            ) {
                                                 Log.d("extra", "found fundamental:");
 
                                                 foundFundamental = true;
@@ -666,9 +685,8 @@ public class Staff {
                                     }
                                     if (!foundFundamental) {
                                         Log.d("extra", "***extra note!!***");
+                                        extraNotes.add((int)peaks[peakIndex][PEAK_NOTE]);
 
-                                        ((ChordSymbol) curr).extraNotes = true;
-                                        break;
                                     }
 
 
@@ -677,6 +695,61 @@ public class Staff {
                             }
                         }
 
+                    }
+                    Log.d("extra", "looking for double faulties***");
+                    Log.d("extra", "previous array has: ");
+                    if(prevExtraNotes!=null)
+                    {
+                        Log.d("extra", ""+prevExtraNotes.size()+" notes:");
+                        for(int prevNote : prevExtraNotes)
+                        {
+                            Log.d("extra", ""+prevNote);
+
+                        }
+
+                    }
+                    else
+                    {
+                        Log.d("extra", "0 notes:");
+
+                    }
+
+                    boolean faltyNote = false;
+                    if(extraNotes!=null && extraNotes.size()>=2)
+                    {
+                        faltyNote=true;
+                    }
+                    else if(prevExtraNotes!=null && extraNotes!=null)
+                    {
+                        for(int note : extraNotes)
+                        {
+                            Log.d("extra", "match for: " + note);
+
+                            for(int prevNote : prevExtraNotes)
+                            {
+                                if(note==prevNote)
+                                {
+                                    Log.d("extra", "found match: "+ prevNote);
+
+
+                                    faltyNote=true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if(faltyNote)
+                    {
+                        ((ChordSymbol) curr).extraNotes = true;
+                    }
+                    if(extraNotes!=null)
+                    {
+                        prevExtraNotes = new ArrayList<Integer>(extraNotes);
+                        extraNotes.clear();
+                    }
+                    else
+                    {
+                        prevExtraNotes=new ArrayList<Integer>();
                     }
 
                 }

@@ -1026,9 +1026,9 @@ public class MidiPlayer extends LinearLayout {
             BPM = 60000000 / options.tempo;
             PPQ = mfile.returnPPQ();
             p2s = 60000 / (double) ((BPM * PPQ));
-            windowSizeTime = 60 / (2 * (double) BPM);
+            windowSizeTime = 60 / (4 * (double) BPM);
             windowSize = Math.round(windowSizeTime * SR);
-//                Log.d("midi", "tempo , windowSizeTime, windowSize: " + BPM + " , " + windowSizeTime + " , " + windowSize);
+                Log.d("midi", "tempo , windowSizeTime, windowSize, fourier" + BPM + " , " + windowSizeTime + " , " + windowSize + " , " +fourierCoef);
 
         }
 
@@ -1051,6 +1051,7 @@ public class MidiPlayer extends LinearLayout {
                 double[][] finalPeaks;
                 double[][] finalizedPeaks;
                 FFT fft = new FFT(bufferSize);
+
                 //            float[] amplitudes = new float[bufferSize / 2];
                 float[] finalAmplitudes = new float[bufferSize];
                 boolean firstRun = true;
@@ -1073,14 +1074,18 @@ public class MidiPlayer extends LinearLayout {
                  */
                 public boolean process(AudioEvent audioEvent) {
 
+                    float[] audioFloatBuffer = audioEvent.getFloatBuffer();
 
-                    if (timeCounter.firstRun) {
+                    // check to see if there is anything playing:
+                    boolean silence = silenceDetector.isSilence(audioFloatBuffer);
+
+                    if (timeCounter.firstRun && !silence) {
 
 //
                         startTime = System.nanoTime();
                         timeCounter.firstRun = false;
                         timeElapsed = 0;
-                    } else {
+                    } else if(!timeCounter.firstRun){
                         timeElapsed = ((double) (System.nanoTime() - startTime)) / 1000000.0;
                     }
 //                        if (firstRun) {
@@ -1096,11 +1101,7 @@ public class MidiPlayer extends LinearLayout {
 //                        }
 
                     // the buffer containing the audio data:
-                    float[] audioFloatBuffer = audioEvent.getFloatBuffer();
-                    float[] envelope = audioFloatBuffer;
 
-                    // check to see if there is anything playing:
-                    boolean silence = silenceDetector.isSilence(audioFloatBuffer);
 
                     // if it isn't silent:
                     if (!silence) {
@@ -1502,14 +1503,12 @@ public class MidiPlayer extends LinearLayout {
 //                        }
 //                    });
 //                    }
-                        float maxAmp = 0;
 //                    for (int j = 0; j < audioFloatBuffer.length; j++) {
 //                        maxAmp = (maxAmp < audioFloatBuffer[j]) ? audioFloatBuffer[j] : maxAmp;
 //
 //                    }
 
 //                    if (maxAmp > 0.1) {
-                        Log.d("max amp", "max: " + maxAmp);
 
 
                         float[] transformbuffer = new float[bufferSize * 2];
@@ -1638,13 +1637,17 @@ public class MidiPlayer extends LinearLayout {
 
                             foundSecond = false;
                             // look for peak with amp thresh:
-                            if (possiblePeaks[i][PEAK_FREQ] < 2500 && possiblePeaks[i][PEAK_AMP] > peakAverage * 0.75) {
+                            if (possiblePeaks[i][PEAK_FREQ] < 2500 && possiblePeaks[i][PEAK_AMP] > peakAverage /3) {
 
                                 // look for second harmony
                                 for (int j = i + 1; j < peakCounter; j++) {
                                     if (!foundSecond) {
                                         if ((PitchConverter.hertzToMidiKey((double) possiblePeaks[i][PEAK_FREQ]) == PitchConverter.hertzToMidiKey((double) (possiblePeaks[j][PEAK_FREQ] / 2))
-                                                && possiblePeaks[j][PEAK_AMP] > peakAverage / 10)) {
+                                                && possiblePeaks[j][PEAK_AMP] > peakAverage *0.75)
+                                                ||
+                                                (PitchConverter.hertzToMidiKey((double) possiblePeaks[i][PEAK_FREQ]) == PitchConverter.hertzToMidiKey((double) (possiblePeaks[j][PEAK_FREQ] / 3))
+                                                        && possiblePeaks[j][PEAK_AMP] > peakAverage /3)
+                                                ) {
 
 
 
@@ -1655,7 +1658,7 @@ public class MidiPlayer extends LinearLayout {
                                             float ratio = possiblePeaks[i][PEAK_AMP] / average;
 
 
-                                            if (ratio >= 3) {
+                                            if (ratio >= 2) {
 //                                        add to found peaks:
 
                                                 foundPeaks[foundCounter][PEAK_LOC] = possiblePeaks[i][PEAK_LOC];
@@ -1701,9 +1704,12 @@ public class MidiPlayer extends LinearLayout {
                         }
 
                     }
+                    if(!timeCounter.firstRun )
+                    {
+                        callback.setPeaks(foundPeaks, timeElapsed / p2s, silence);
+                        callback.run();
+                    }
 
-                    callback.setPeaks(foundPeaks, timeElapsed / p2s, silence);
-                    callback.run();
 
 //                runOnUiThread(new Runnable() {
 //                    @Override
