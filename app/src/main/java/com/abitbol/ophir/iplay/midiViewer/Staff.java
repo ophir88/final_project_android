@@ -5,16 +5,20 @@
  *  it under the terms of the GNU General Public License version 2.
  *
  *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  but WITHOUT ANY WARRANTY; with//out even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  */
 
 package com.abitbol.ophir.iplay.midiViewer;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.util.*;
 
 import android.graphics.*;
+import android.os.Environment;
 import android.util.Log;
 
 import be.tarsos.dsp.util.PitchConverter;
@@ -472,7 +476,7 @@ public class Staff {
     public int ShadeNotes(Canvas canvas, Paint paint, int shade,
                           int currentPulseTime, int prevPulseTime, int x_shade, float[][] peaks, int staffCount
             , ArrayList<Staff> staffs) {
-//        Log.d("chord" , "callback called, start time is: " + currentPulseTime);
+//        //Log.d("chord" , "callback called, start time is: " + currentPulseTime);
 
 
         if (((currentPulseTime == prevPulseTime) && (currentPulseTime == 0))) {
@@ -482,7 +486,7 @@ public class Staff {
         /* If there's nothing to unshade, or shade, return */
         if ((starttime > prevPulseTime || endtime < prevPulseTime) &&
                 (starttime > currentPulseTime || endtime < currentPulseTime)) {
-            Log.d("chord", "return from 1");
+            //Log.d("chord", "return from 1");
 
             return x_shade;
         }
@@ -524,7 +528,7 @@ public class Staff {
                 if (x_shade == 0) {
                     x_shade = xpos;
                 }
-                Log.d("chord", "return from 2");
+                //Log.d("chord", "return from 2");
 
                 return x_shade;
             }
@@ -535,7 +539,7 @@ public class Staff {
                     (start <= prevPulseTime) && (prevPulseTime < end)) {
                 if (isChord && ((ChordSymbol) curr).read) {
                     x_shade = xpos;
-                    Log.d("chord", "return from 3");
+                    //Log.d("chord", "return from 3");
 
                     return x_shade;
                 }
@@ -555,7 +559,6 @@ public class Staff {
                 paint.setColor(Color.BLACK);
                 canvas.translate(-(xpos - 2), 2);
                 canvas.translate(xpos, 0);
-                Log.d("chord", "sending to Draw, white backGround");
 
                 curr.Draw(canvas, paint, ytop);
                 canvas.translate(-xpos, 0);
@@ -568,189 +571,239 @@ public class Staff {
                 if (isChord) {
                     NoteData[] notes = ((ChordSymbol) curr).getNotedata();
                     for (NoteData note : notes) {
-                        Log.d("notess", "**************************************");
-                        Log.d("extra", "**************************************");
+                        //Log.d("notess", "**************************************");
+//                        //Log.d("extra", "**************************************");
 
                         int noteNumber = note.number;
-                        Log.d("notess", "looking for: " + noteNumber);
-                        Log.d("extra", "looking for: " + noteNumber);
+                        //Log.d("notess", "looking for: " + noteNumber);
+//                        //Log.d("extra", "looking for: " + noteNumber);
 
                         if (peaks != null) {
-                            Log.d("notess", "available notes are: ");
+                            //Log.d("notess", "available notes are: ");
                             for (int peakIndex = 0; peakIndex < peaks.length; peakIndex++) {
-                                if(peaks[peakIndex][PEAK_NOTE]==0) break;
-                                Log.d("notess", " " + peaks[peakIndex][PEAK_NOTE]);
+                                if (peaks[peakIndex][PEAK_NOTE] == 0) break;
+                                //Log.d("notess", " " + peaks[peakIndex][PEAK_NOTE]);
                             }
 
-
-//                            Log.d("chordPeaks", "");
-//                            Log.d("chordPeaks", "looking for: " + noteNumber);
-//                            Log.d("extra", "looking for: " + noteNumber);
-//
-//                            Log.d("chordPeaks", "---------------------");
-//                            Log.d("chordPeaks", "");
-
-//                            Math.min(pea)
                             for (int peakIndex = 0; peakIndex < peaks.length; peakIndex++) {
                                 if (peaks[peakIndex][PEAK_AMP] == 0) {
                                     break;
                                 }
                                 int peak = (int) peaks[peakIndex][PEAK_NOTE];
-                                if (noteNumber%12 == peak%12) {
+                                if (noteNumber % 12 == peak % 12) {
                                     peaks[peakIndex][PEAK_PLAYED]++;
 
                                     note.playCount++;
-                                    Log.d("notess", "==== found " + noteNumber + ": [" + note.playCount + "/"+note.expCount+"]");
+                                    //Log.d("notess", "==== found " + noteNumber + ": [" + note.playCount + "/" + note.expCount + "]");
 
-//                                    Log.d("chordPeaks", "found peak!");
+//                                    //Log.d("chordPeaks", "found peak!");
                                     break;
 
                                 }
                             }
-//                            Log.d("chordPeaks", "**************************************");
-//                            Log.d("chordPeaks", "");
-//                            Log.d("chordPeaks", "");
+//                            //Log.d("chordPeaks", "**************************************");
+//                            //Log.d("chordPeaks", "");
+//                            //Log.d("chordPeaks", "");
 
 
                         }
 //
 //                        note.playCount++;
-//                        Log.d("chord", "staff " + staffCount + ": playing note number: " + noteNumber + " played: " + note.playCount + " times");
-//                        Log.d("chord", noteNumber + " exp count:  " + note.expCount);
+//                        //Log.d("chord", "staff " + staffCount + ": playing note number: " + noteNumber + " played: " + note.playCount + " times");
+//                        //Log.d("chord", noteNumber + " exp count:  " + note.expCount);
 
-//                        Log.d("chord" , "note starts at: " + curr.getStartTime()+", for " + note.duration);
+//                        //Log.d("chord" , "note starts at: " + curr.getStartTime()+", for " + note.duration);
                         if (note.playCount >= note.expCount) {
-//                            Log.d("chord", "count exceeded exp");
+//                            //Log.d("chord", "count exceeded exp");
                             note.played = true;
                         }
                     }
                     boolean allRead = true;
                     ((ChordSymbol) curr).extraNotes = false;
 
+                    String foundOk = "";
+                    String previousNotes = "";
                     for (NoteData note : notes) {
                         if (!note.played) {
                             allRead = false;
                         }
 
                     }
-                    if (allRead) {
-                        Log.d("chord", "read the whole chord!");
-                        correct = true;
-                        ((ChordSymbol) curr).read = true;
-                        if (peaks != null) {
-                            // make sure every peak we found is relevant:
-                            for (int peakIndex = 0; peakIndex < peaks.length; peakIndex++) {
-                                // if we found a peak that wasn't played
-                                if (peaks[peakIndex][PEAK_PLAYED] == 0 && peaks[peakIndex][PEAK_AMP] > 0) {
+                    Log.d("checkBuffer" ,"straff: " + staffCount  );
+//                    File log = new File(Environment.getExternalStorageDirectory(), "extra.txt");
+                    //Log.d("buffer", "path: " + log.getAbsolutePath());
 
-                                    Log.d("extra", "found extra note: " + peaks[peakIndex][PEAK_NOTE]);
-                                    Log.d("extra", "looking for fundamental:");
-                                    boolean foundFundamental = false;
+                    try {
+//                        BufferedWriter //out = new BufferedWriter(new FileWriter(log.getAbsolutePath(), true));
+//                        //out.write("*************************** straff: " + staffCount + " \n");
+
+                        if (allRead) {
+                            ((ChordSymbol) curr).read = true;
+
+
+                            //out.write("looking for: \n");
+                            notes = ((ChordSymbol) curr).getNotedata();
+                            for (NoteData note : notes) {
+                                int noteNumber = note.number;
+                                //out.write("" + noteNumber + " \n");
+
+                            }
+                            //out.write("----------------------: \n");
+
+                            //out.write("all notes found: \n");
+                            if (peaks != null) {
+                                for (int peakIndex = 0; peakIndex < peaks.length; peakIndex++) {
+                                    if (peaks[peakIndex][PEAK_NOTE] == 0) break;
+                                    //out.write("[note: " + peaks[peakIndex][PEAK_NOTE] + "], [played: " + peaks[peakIndex][PEAK_PLAYED] + "] \n");
+                                }
+                            }
+
+                            //out.write("----------------------: \n");
+                            //out.write("extra elimination process: \n");
+                            correct = true;
+                            if (peaks != null) {
+                                // make sure every peak we found is relevant:
+                                for (int peakIndex = 0; peakIndex < peaks.length; peakIndex++) {
+                                    //out.write("looking at peak: [" + peaks[peakIndex][PEAK_NOTE] + "][amp: " + peaks[peakIndex][PEAK_AMP] + "] \n");
+
+                                    // if we found a peak that wasn't played
+                                    if (peaks[peakIndex][PEAK_PLAYED] == 0 && peaks[peakIndex][PEAK_AMP] > 0) {
+
+//                                        //Log.d("extra", "found extra note: " + peaks[peakIndex][PEAK_NOTE]);
+                                        boolean foundFundamental = false;
 
 //                                    look for all notes that were supposed to be played:
 
-                                    Log.d("extra", "looking for note in " + staffs.size() + " staffs");
+                                        //Log.d("extra", "looking for notes in staffs");
+                                        //out.write("going through staffs notes\n");
 
-                                    for (Staff staff : staffs) {
-                                        ArrayList<Integer> tempSymbols = getCurrentSymbols.getSymbols(currentPulseTime, prevPulseTime, staff);
-                                        Log.d("extra", "current staff has " + tempSymbols.size() + "notes playing:");
+                                        for (Staff staff : staffs) {
+                                            ArrayList<Integer> tempSymbols = getCurrentSymbols.getSymbols(currentPulseTime, prevPulseTime, staff);
+//                                        //Log.d("extra", "current staff has " + tempSymbols.size() + "notes playing:");
 
 
-                                        for (int noteNumber : tempSymbols) {
-                                            Log.d("extra", "" + noteNumber);
+                                            for (int noteNumber : tempSymbols) {
+                                                //out.write("" + noteNumber + " \n");
+                                                // if we found a note which is a harmonic of it, it's ok.
+                                                if (Math.abs(PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE]) / 2 - PitchConverter.midiKeyToHertz(noteNumber)) < 6
+                                                        ||
+                                                        Math.abs(PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE]) / 3 - PitchConverter.midiKeyToHertz(noteNumber)) < 6
+                                                        ||
+                                                        Math.abs(PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE]) / 4 - PitchConverter.midiKeyToHertz(noteNumber)) < 6
+                                                        ||
+                                                        Math.abs(PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE]) / 5 - PitchConverter.midiKeyToHertz(noteNumber)) < 6
+                                                        ||
+                                                        Math.abs(PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE])  - PitchConverter.midiKeyToHertz(noteNumber)/2) < 6
+                                                        ||
+                                                        Math.abs(PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE]) - PitchConverter.midiKeyToHertz(noteNumber)/3) < 6
+                                                        ||
 
-                                            // if we found a note which is a harmonic of it, it's ok.
-                                            if (Math.abs(PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE])/2 - PitchConverter.midiKeyToHertz(noteNumber))<6
-                                                    ||
-                                                    Math.abs( PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE])/3 - PitchConverter.midiKeyToHertz(noteNumber))<6
-                                                    ||
-                                                    Math.abs(PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE])/4 - PitchConverter.midiKeyToHertz(noteNumber))<6
-                                                    ||
-                                                    Math.abs(PitchConverter.midiKeyToHertz((int) peaks[peakIndex][PEAK_NOTE])/5 - PitchConverter.midiKeyToHertz(noteNumber))<6
-                                                    ||
-                                                    peaks[peakIndex][PEAK_NOTE]%12 == noteNumber%12
-                                            ) {
-                                                Log.d("extra", "found fundamental:");
 
-                                                foundFundamental = true;
-                                                break;
+                                                        peaks[peakIndex][PEAK_NOTE] % 12 == noteNumber % 12
+                                                        ) {
+                                                    //out.write("found harmony! \n");
+//                                                    //Log.d("extra", "found fundamental:");
+                                                    foundFundamental = true;
+                                                    break;
 
+                                                }
                                             }
+                                            if (foundFundamental) {
+                                                break;
+                                            }
+
                                         }
-                                        if(foundFundamental)
-                                        {
-                                            break;
+                                        if (!foundFundamental) {
+                                            //out.write("didn't find harmony! adding to extra notes \n");
+
+//                                            //Log.d("extra", "***extra note!!***");
+                                            extraNotes.add((int) peaks[peakIndex][PEAK_NOTE]);
+
                                         }
+
 
                                     }
-                                    if (!foundFundamental) {
-                                        Log.d("extra", "***extra note!!***");
-                                        extraNotes.add((int)peaks[peakIndex][PEAK_NOTE]);
-
+                                    if (peaks[peakIndex][PEAK_AMP] == 0) {
+                                        break;
                                     }
-
-
-
                                 }
                             }
-                        }
-
-                    }
-                    Log.d("extra", "looking for double faulties***");
-                    Log.d("extra", "previous array has: ");
-                    if(prevExtraNotes!=null)
-                    {
-                        Log.d("extra", ""+prevExtraNotes.size()+" notes:");
-                        for(int prevNote : prevExtraNotes)
-                        {
-                            Log.d("extra", ""+prevNote);
-
-                        }
-
-                    }
-                    else
-                    {
-                        Log.d("extra", "0 notes:");
-
-                    }
-
-                    boolean faltyNote = false;
-                    if(extraNotes!=null && extraNotes.size()>=2)
-                    {
-                        faltyNote=true;
-                    }
-                    else if(prevExtraNotes!=null && extraNotes!=null)
-                    {
-                        for(int note : extraNotes)
-                        {
-                            Log.d("extra", "match for: " + note);
-
-                            for(int prevNote : prevExtraNotes)
-                            {
-                                if(note==prevNote)
-                                {
-                                    Log.d("extra", "found match: "+ prevNote);
 
 
-                                    faltyNote=true;
-                                    break;
+                            //out.write("----------------------: \n");
+
+
+                            if (extraNotes != null) {
+                                //out.write("found extra notes: \n");
+                                for (int note : extraNotes) {
+                                    //out.write("" + note + "\n");
                                 }
+
+                            } else {
+                                //out.write("no extra notes found. \n");
+
                             }
+                            //out.write("----------------------: \n");
+
+                            if (prevExtraNotes != null) {
+                                //out.write("previous extra notes: \n");
+                                for (int prevNote : prevExtraNotes) {
+                                    //out.write("" + prevNote + " \n");
+                                }
+
+                            } else {
+                                //out.write("previous is empty \n");
+                            }
+                            //out.write("----------------------: \n");
+                            //out.close();
+
+
                         }
+                    } catch (Exception e) {
+                        Log.e("buffer", "Error opening Log.", e);
                     }
-                    if(faltyNote)
-                    {
+//                    Log used as debug
+
+
+//                    //Log.d("extra", "looking for double faulties***");
+//                    if (prevExtraNotes != null) {
+////                        //Log.d("extra", "previous array has: " + prevExtraNotes.size() + " notes:");
+//                        for (int prevNote : prevExtraNotes) {
+////                            //Log.d("extra", "" + prevNote);
+//                        }
+//
+//                    }
+
+//
+//                    boolean faltyNote = false;
+////                    if (extraNotes != null && extraNotes.size() >= 2) {
+////                        faltyNote = true;
+////                    } else
+//                    if (prevExtraNotes != null && extraNotes != null) {
+//                        for (int note : extraNotes) {
+////                            //Log.d("extra", "match for: " + note);
+//
+//                            for (int prevNote : prevExtraNotes) {
+//                                if (note == prevNote) {
+////                                    //Log.d("extra", "found match: " + prevNote);
+//                                    faltyNote = true;
+//                                    break;
+//                                }
+//                            }
+//                        }
+//                    }
+                    if (extraNotes.size()>0) {
+//                        //Log.d("extra", "positive falty");
+
                         ((ChordSymbol) curr).extraNotes = true;
                     }
-                    if(extraNotes!=null)
-                    {
-                        prevExtraNotes = new ArrayList<Integer>(extraNotes);
-                        extraNotes.clear();
-                    }
-                    else
-                    {
-                        prevExtraNotes=new ArrayList<Integer>();
-                    }
+//                    if (extraNotes != null) {
+//                        prevExtraNotes = new ArrayList<Integer>(extraNotes);
+//
+//                    } else {
+//                        prevExtraNotes = new ArrayList<Integer>();
+//                    }
+                    extraNotes = new ArrayList<Integer>();
 
                 }
                 x_shade = xpos;
@@ -762,11 +815,14 @@ public class Staff {
                 paint.setColor(Color.BLUE);
                 if (isChord) {
                     ((ChordSymbol) curr).Draw(canvas, paint, ytop, ((ChordSymbol) curr).read, true, ((ChordSymbol) curr).extraNotes);
-                    Log.d("chord", "sending to Draw, gray backGround - color");
+                    //Log.d("checkColor", "******color");
 
                 } else {
+                    String type = curr.getClass().getName();
+                    //Log.d("checkColor", "of type: " + type);
+
                     curr.Draw(canvas, paint, ytop);
-                    Log.d("chord", "sending to Draw, gray backGround - black");
+//                    //Log.d("checkColor", "=====black");
 
                 }
 
@@ -793,7 +849,7 @@ public class Staff {
 
                 if (prevChord != null) {
                     canvas.translate(prev_xpos, 0);
-                    Log.d("chord", "sending to Draw, prevChord");
+                    //Log.d("chord", "sending to Draw, prevChord");
 
                     prevChord.Draw(canvas, paint, ytop, prevChord.read, false, prevChord.extraNotes);
 

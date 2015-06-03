@@ -535,6 +535,7 @@ public class ChordSymbol implements MusicSymbol {
      * @param ytop The ylocation (in pixels) where the top of the staff starts.
      */
     public void Draw(Canvas canvas, Paint paint, int ytop) {
+
         paint.setStyle(Paint.Style.STROKE);
 
         /* Align the chord to the right */
@@ -728,6 +729,8 @@ public class ChordSymbol implements MusicSymbol {
      * @return The x pixel width used by all the accidentals.
      */
     public int DrawAccid(Canvas canvas, Paint paint, int ytop) {
+        Log.d("checkColor", "drawing accidents!");
+
         int xpos = 0;
 
         AccidSymbol prev = null;
@@ -753,6 +756,8 @@ public class ChordSymbol implements MusicSymbol {
      * @param topstaff The white note of the top of the staff.
      */
     public void DrawNotes(Canvas canvas, Paint paint, int ytop, WhiteNote topstaff) {
+        Log.d("checkColor", "initial draw");
+
         paint.setStrokeWidth(1);
         for (NoteData note : notedata) {
 
@@ -911,142 +916,143 @@ public class ChordSymbol implements MusicSymbol {
      * (only applies to 2-chord beams).
      */
     public static boolean CanCreateBeam(ChordSymbol[] chords, TimeSignature time, boolean startQuarter) {
-        int numChords = chords.length;
-        Stem firstStem = chords[0].getStem();
-        Stem lastStem = chords[chords.length - 1].getStem();
-        if (firstStem == null || lastStem == null) {
-            return false;
-        }
-        int measure = chords[0].getStartTime() / time.getMeasure();
-        NoteDuration dur = firstStem.getDuration();
-        NoteDuration dur2 = lastStem.getDuration();
-
-        boolean dotted8_to_16 = false;
-        if (chords.length == 2 && dur == NoteDuration.DottedEighth &&
-                dur2 == NoteDuration.Sixteenth) {
-            dotted8_to_16 = true;
-        }
-
-        if (dur == NoteDuration.Whole || dur == NoteDuration.Half ||
-                dur == NoteDuration.DottedHalf || dur == NoteDuration.Quarter ||
-                dur == NoteDuration.DottedQuarter ||
-                (dur == NoteDuration.DottedEighth && !dotted8_to_16)) {
-
-            return false;
-        }
-
-        if (numChords == 6) {
-            if (dur != NoteDuration.Eighth) {
-                return false;
-            }
-            boolean correctTime =
-                    ((time.getNumerator() == 3 && time.getDenominator() == 4) ||
-                            (time.getNumerator() == 6 && time.getDenominator() == 8) ||
-                            (time.getNumerator() == 6 && time.getDenominator() == 4));
-            if (!correctTime) {
-                return false;
-            }
-
-            if (time.getNumerator() == 6 && time.getDenominator() == 4) {
-                /* first chord must start at 1st or 4th quarter note */
-                int beat = time.getQuarter() * 3;
-                if ((chords[0].getStartTime() % beat) > time.getQuarter() / 6) {
-                    return false;
-                }
-            }
-        } else if (numChords == 4) {
-            if (time.getNumerator() == 3 && time.getDenominator() == 8) {
-                return false;
-            }
-            boolean correctTime =
-                    (time.getNumerator() == 2 || time.getNumerator() == 4 || time.getNumerator() == 8);
-            if (!correctTime && dur != NoteDuration.Sixteenth) {
-                return false;
-            }
-
-            /* chord must start on quarter note */
-            int beat = time.getQuarter();
-            if (dur == NoteDuration.Eighth) {
-                /* 8th note chord must start on 1st or 3rd quarter beat */
-                beat = time.getQuarter() * 2;
-            } else if (dur == NoteDuration.ThirtySecond) {
-                /* 32nd note must start on an 8th beat */
-                beat = time.getQuarter() / 2;
-            }
-
-            if ((chords[0].getStartTime() % beat) > time.getQuarter() / 6) {
-                return false;
-            }
-        } else if (numChords == 3) {
-            boolean valid = (dur == NoteDuration.Triplet) ||
-                    (dur == NoteDuration.Eighth &&
-                            time.getNumerator() == 12 && time.getDenominator() == 8);
-            if (!valid) {
-                return false;
-            }
-
-            /* chord must start on quarter note */
-            int beat = time.getQuarter();
-            if (time.getNumerator() == 12 && time.getDenominator() == 8) {
-                /* In 12/8 time, chord must start on 3*8th beat */
-                beat = time.getQuarter() / 2 * 3;
-            }
-            if ((chords[0].getStartTime() % beat) > time.getQuarter() / 6) {
-                return false;
-            }
-        } else if (numChords == 2) {
-            if (startQuarter) {
-                int beat = time.getQuarter();
-                if ((chords[0].getStartTime() % beat) > time.getQuarter() / 6) {
-                    return false;
-                }
-            }
-        }
-
-        for (ChordSymbol chord : chords) {
-            if ((chord.getStartTime() / time.getMeasure()) != measure)
-                return false;
-            if (chord.getStem() == null)
-                return false;
-            if (chord.getStem().getDuration() != dur && !dotted8_to_16)
-                return false;
-            if (chord.getStem().IsBeam())
-                return false;
-        }
-
-        /* Check that all stems can point in same direction */
-        boolean hasTwoStems = false;
-        int direction = Stem.Up;
-        for (ChordSymbol chord : chords) {
-            if (chord.getHasTwoStems()) {
-                if (hasTwoStems && chord.getStem().getDirection() != direction) {
-                    return false;
-                }
-                hasTwoStems = true;
-                direction = chord.getStem().getDirection();
-            }
-        }
-
-        /* Get the final stem direction */
-        if (!hasTwoStems) {
-            WhiteNote note1;
-            WhiteNote note2;
-            note1 = (firstStem.getDirection() == Stem.Up ? firstStem.getTop() : firstStem.getBottom());
-            note2 = (lastStem.getDirection() == Stem.Up ? lastStem.getTop() : lastStem.getBottom());
-            direction = StemDirection(note1, note2, chords[0].getClef());
-        }
-
-        /* If the notes are too far apart, don't use a beam */
-        if (direction == Stem.Up) {
-            if (Math.abs(firstStem.getTop().Dist(lastStem.getTop())) >= 11) {
-                return false;
-            }
-        } else {
-            if (Math.abs(firstStem.getBottom().Dist(lastStem.getBottom())) >= 11) {
-                return false;
-            }
-        }
-        return true;
+//        int numChords = chords.length;
+//        Stem firstStem = chords[0].getStem();
+//        Stem lastStem = chords[chords.length - 1].getStem();
+//        if (firstStem == null || lastStem == null) {
+//            return false;
+//        }
+//        int measure = chords[0].getStartTime() / time.getMeasure();
+//        NoteDuration dur = firstStem.getDuration();
+//        NoteDuration dur2 = lastStem.getDuration();
+//
+//        boolean dotted8_to_16 = false;
+//        if (chords.length == 2 && dur == NoteDuration.DottedEighth &&
+//                dur2 == NoteDuration.Sixteenth) {
+//            dotted8_to_16 = true;
+//        }
+//
+//        if (dur == NoteDuration.Whole || dur == NoteDuration.Half ||
+//                dur == NoteDuration.DottedHalf || dur == NoteDuration.Quarter ||
+//                dur == NoteDuration.DottedQuarter ||
+//                (dur == NoteDuration.DottedEighth && !dotted8_to_16)) {
+//
+//            return false;
+//        }
+//
+//        if (numChords == 6) {
+//            if (dur != NoteDuration.Eighth) {
+//                return false;
+//            }
+//            boolean correctTime =
+//                    ((time.getNumerator() == 3 && time.getDenominator() == 4) ||
+//                            (time.getNumerator() == 6 && time.getDenominator() == 8) ||
+//                            (time.getNumerator() == 6 && time.getDenominator() == 4));
+//            if (!correctTime) {
+//                return false;
+//            }
+//
+//            if (time.getNumerator() == 6 && time.getDenominator() == 4) {
+//                /* first chord must start at 1st or 4th quarter note */
+//                int beat = time.getQuarter() * 3;
+//                if ((chords[0].getStartTime() % beat) > time.getQuarter() / 6) {
+//                    return false;
+//                }
+//            }
+//        } else if (numChords == 4) {
+//            if (time.getNumerator() == 3 && time.getDenominator() == 8) {
+//                return false;
+//            }
+//            boolean correctTime =
+//                    (time.getNumerator() == 2 || time.getNumerator() == 4 || time.getNumerator() == 8);
+//            if (!correctTime && dur != NoteDuration.Sixteenth) {
+//                return false;
+//            }
+//
+//            /* chord must start on quarter note */
+//            int beat = time.getQuarter();
+//            if (dur == NoteDuration.Eighth) {
+//                /* 8th note chord must start on 1st or 3rd quarter beat */
+//                beat = time.getQuarter() * 2;
+//            } else if (dur == NoteDuration.ThirtySecond) {
+//                /* 32nd note must start on an 8th beat */
+//                beat = time.getQuarter() / 2;
+//            }
+//
+//            if ((chords[0].getStartTime() % beat) > time.getQuarter() / 6) {
+//                return false;
+//            }
+//        } else if (numChords == 3) {
+//            boolean valid = (dur == NoteDuration.Triplet) ||
+//                    (dur == NoteDuration.Eighth &&
+//                            time.getNumerator() == 12 && time.getDenominator() == 8);
+//            if (!valid) {
+//                return false;
+//            }
+//
+//            /* chord must start on quarter note */
+//            int beat = time.getQuarter();
+//            if (time.getNumerator() == 12 && time.getDenominator() == 8) {
+//                /* In 12/8 time, chord must start on 3*8th beat */
+//                beat = time.getQuarter() / 2 * 3;
+//            }
+//            if ((chords[0].getStartTime() % beat) > time.getQuarter() / 6) {
+//                return false;
+//            }
+//        } else if (numChords == 2) {
+//            if (startQuarter) {
+//                int beat = time.getQuarter();
+//                if ((chords[0].getStartTime() % beat) > time.getQuarter() / 6) {
+//                    return false;
+//                }
+//            }
+//        }
+//
+//        for (ChordSymbol chord : chords) {
+//            if ((chord.getStartTime() / time.getMeasure()) != measure)
+//                return false;
+//            if (chord.getStem() == null)
+//                return false;
+//            if (chord.getStem().getDuration() != dur && !dotted8_to_16)
+//                return false;
+//            if (chord.getStem().IsBeam())
+//                return false;
+//        }
+//
+//        /* Check that all stems can point in same direction */
+//        boolean hasTwoStems = false;
+//        int direction = Stem.Up;
+//        for (ChordSymbol chord : chords) {
+//            if (chord.getHasTwoStems()) {
+//                if (hasTwoStems && chord.getStem().getDirection() != direction) {
+//                    return false;
+//                }
+//                hasTwoStems = true;
+//                direction = chord.getStem().getDirection();
+//            }
+//        }
+//
+//        /* Get the final stem direction */
+//        if (!hasTwoStems) {
+//            WhiteNote note1;
+//            WhiteNote note2;
+//            note1 = (firstStem.getDirection() == Stem.Up ? firstStem.getTop() : firstStem.getBottom());
+//            note2 = (lastStem.getDirection() == Stem.Up ? lastStem.getTop() : lastStem.getBottom());
+//            direction = StemDirection(note1, note2, chords[0].getClef());
+//        }
+//
+//        /* If the notes are too far apart, don't use a beam */
+//        if (direction == Stem.Up) {
+//            if (Math.abs(firstStem.getTop().Dist(lastStem.getTop())) >= 11) {
+//                return false;
+//            }
+//        } else {
+//            if (Math.abs(firstStem.getBottom().Dist(lastStem.getBottom())) >= 11) {
+//                return false;
+//            }
+//        }
+//        return true;
+        return false;
     }
 
 
