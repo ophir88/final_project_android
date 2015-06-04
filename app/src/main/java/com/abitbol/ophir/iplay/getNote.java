@@ -15,6 +15,7 @@ public class getNote {
 	private static final float eps = 3;
 	private double[] freqs = { 261, 293, 329, 349 , 391,
 			440, 493 };
+    private int[] allNotes = new int[NUMBER_OF_KEYS];
 
     private int[] notes;
 	public getNote(int bufferSize, double coeff) {
@@ -63,6 +64,7 @@ public class getNote {
             double exp = (i-49.0)/12.0;
             double note = Math.pow(2,exp)*440;
             int index = (int)Math.round(note/coeff);
+            allNotes[(int) i-1]=index;
             notes[index]= notes[index+1]=notes[index-1]=1;
 
             Log.d("NOTE MAP", "created note at: "+index + " : " + note );
@@ -75,4 +77,8 @@ public class getNote {
 	public double[] getFreqs() {
 		return freqs;
 	}
+
+    public int[] getAllNotes() {
+        return allNotes;
+    }
 }

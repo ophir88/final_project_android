@@ -76,8 +76,10 @@ public class MidiPlayer extends LinearLayout {
     public final static int PEAK_NOTE = 3;
     public final static int PEAK_FUNDAMENTAL = 4;
     public final static int MAX_PEAKS = 60;
+    public final static int NUM_HARMONY = 3;
+    public final static int NUM_NOTES = 88;
     final float thresh = (float) 0.01;
-
+    static int bufferCounter = 0;
 
     Countdown countdown;
     Activity activity;
@@ -891,16 +893,17 @@ public class MidiPlayer extends LinearLayout {
      * the stop or pause button), then stop the timer.
      */
     public class callBack implements Runnable {
-        float[][] finalPeaks;
+        float[][] extraNotes;
         double currentTime;
         double currentPulseTime;
+        Buffer buffer;
 
         public callBack() {
             currentPulseTime = 0;
         }
 
-        public void setPeaks(float[][] finalPeaks, double time, boolean silence) {
-            this.finalPeaks = finalPeaks;
+        public void setPeaks(Buffer buffer, double time, boolean silence) {
+            this.buffer = buffer;
             currentTime = time;
         }
 
@@ -942,7 +945,7 @@ public class MidiPlayer extends LinearLayout {
                     return;
                 }
                 //Log.d("shading", "calling shading");
-                sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, true, finalPeaks);
+                sheet.ShadeNotes((int) currentPulseTime, (int) prevPulseTime, true, buffer);
                 piano.ShadeNotes((int) currentPulseTime, (int) prevPulseTime);
 //                    timer.postDelayed(TimerCallback, 312);
                 return;
@@ -985,6 +988,7 @@ public class MidiPlayer extends LinearLayout {
         double[][] tempExpNotes = new double[5][4]; // will hold the current notes we are looking for
         double[][] expNotes = new double[5][4]; // will hold the current notes we are looking for
         int[] noteDB; // array of possible notes, according to bufferSize;
+        int[] allNotes; // array of possible notes, according to bufferSize;
 
         boolean endMidi = false;
         boolean running = false; // is the record thread running
@@ -1006,6 +1010,7 @@ public class MidiPlayer extends LinearLayout {
             fourierCoef = SR / ((windowSize));
             final getNote gtNt = new getNote(bufferSize, fourierCoef);
             noteDB = gtNt.getNotes();
+            allNotes = gtNt.getAllNotes();
             this.callback = callback;
         }
 
@@ -1041,13 +1046,26 @@ public class MidiPlayer extends LinearLayout {
                 FloatFFT_1D jft = new FloatFFT_1D(bufferSize);
 
                 float[] amplitudes = new float[bufferSize];
+                float[] amplitudesErased = new float[bufferSize];
                 float[] amplitudesDerivative = new float[bufferSize];
                 float[][] possiblePeaks;
                 float[][] foundPeaks;
+                float[][] foundPeaks2;
+                float[][] foundPeaksFinal;
+                boolean foundAll;
+                boolean foundExtra;
+                int foundCounter, foundCounterFinal;
+                float extraMidi;
+                boolean newExtraAlgo;
 
+
+
+                ArrayList<Staff> staffs = sheet.staffs;
                 float[] phase = new float[bufferSize];
                 double[][] finalPeaks;
                 double[][] finalizedPeaks;
+                int prevTime = -10;
+                int currTime = 0;
                 FFT fft = new FFT(bufferSize);
 
                 //            float[] amplitudes = new float[bufferSize / 2];
@@ -1073,7 +1091,7 @@ public class MidiPlayer extends LinearLayout {
                 public boolean process(AudioEvent audioEvent) {
 
 
-                    Log.d("midi", "tempo , windowSizeTime, windowSize, fourier" + BPM + " , " + windowSizeTime + " , " + windowSize + " , " +fourierCoef);
+                    Log.d("midi", "tempo , windowSizeTime, windowSize, fourier" + BPM + " , " + windowSizeTime + " , " + windowSize + " , " + fourierCoef);
 
                     float[] audioFloatBuffer = audioEvent.getFloatBuffer();
 
@@ -1086,8 +1104,13 @@ public class MidiPlayer extends LinearLayout {
                         startTime = System.nanoTime();
                         timeCounter.firstRun = false;
                         timeElapsed = 0;
-                    } else if(!timeCounter.firstRun){
+                    } else if (!timeCounter.firstRun) {
+
+                        prevTime = (int) Math.round(timeElapsed / p2s);
+
                         timeElapsed = ((double) (System.nanoTime() - startTime)) / 1000000.0;
+                        currTime = (int) Math.round(timeElapsed / p2s);
+
                     }
 //                        if (firstRun) {
 //
@@ -1512,6 +1535,29 @@ public class MidiPlayer extends LinearLayout {
 //                    if (maxAmp > 0.1) {
 
 
+                        // get the re
+
+                        /**
+                         * get the relevant notes:
+                         */
+
+//                        int tempPrevPulseTime = (int)Math.round(prevPulseTime);
+
+//                        int tempCurrentPulseTime = (int) Math.round(timeElapsed);
+                        Log.d("symbols", "***********[ " + prevTime + " , " + currTime + " ]");
+
+                        ArrayList<Integer> tempSymbols = new ArrayList<Integer>();
+                        for (Staff staff : staffs) {
+                            tempSymbols.addAll(getCurrentSymbols.getSymbols(currTime, prevTime, staff));
+                        }
+                        String symbs = "[";
+                        for (int note : tempSymbols) {
+                            symbs += note + ", ";
+                        }
+                        symbs += "]";
+
+                        Log.d("symbols", "looking for: " + symbs);
+
                         float[] transformbuffer = new float[bufferSize * 2];
 
                         System.arraycopy(audioFloatBuffer, 0, transformbuffer, 0,
@@ -1521,25 +1567,7 @@ public class MidiPlayer extends LinearLayout {
                         fft.powerPhaseFFT(transformbuffer, amplitudes, phase);
 
 
-
-
                         float max = 0;
-
-
-                        File log = new File(Environment.getExternalStorageDirectory(), "buffer.txt");
-                        //Log.d("buffer", "path: " + log.getAbsolutePath());
-                        try {
-                            BufferedWriter out = new BufferedWriter(new FileWriter(log.getAbsolutePath(), true));
-                            out.write("buffer: \n");
-
-                            for (int i = 1; i < amplitudes.length / 2; ++i) {
-                                out.write(amplitudes[i] + "\n");
-
-                            }
-                            out.close();
-                        } catch (Exception e) {
-                            Log.e("buffer", "Error opening Log.", e);
-                        }
 
 //                    first filter
                         for (int i = 0; i < amplitudes.length / 2; i++) {
@@ -1568,149 +1596,452 @@ public class MidiPlayer extends LinearLayout {
                         for (int i = 0; i < amplitudes.length / 2; i++) {
                             amplitudes[i] /= max;
                         }
+                        File log5 = new File(Environment.getExternalStorageDirectory(), "bufferBefore.txt");
+                        //Log.d("buffer", "path: " + log.getAbsolutePath());
+                        try {
+                            BufferedWriter out = new BufferedWriter(new FileWriter(log5.getAbsolutePath(), true));
+                            out.write("buffer: \n");
+
+                            for (int i = 1; i < amplitudes.length / 2; ++i) {
+                                out.write(amplitudes[i] + "\n");
+
+                            }
+                            out.close();
+                        } catch (Exception e) {
+                            Log.e("buffer", "Error opening Log.", e);
+                        }
+
+
+
                         /**
-                         * this will hold the possible peaks:
-                         * 0 = location;
-                         * 1 = frequency
-                         * 2 = amplitude
+                         * new code:
                          */
-                        possiblePeaks = new float[MAX_PEAKS][3];
-                        int peakCounter = 0;
-                        boolean full = false;
-                        boolean minorPeak;
-                        for (int i = 1; i < amplitudes.length / 2; i++) {
-                            minorPeak = false; //   restart bool:
+                        foundAll = true;
+                        String currNotes = "";
+                        float[] extraNotes = new float[amplitudes.length];
+                        File log2 = new File(Environment.getExternalStorageDirectory(), "notes.txt");
 
-                            // find peaks:
-                            if (amplitudes[i] > thresh
-                                    && amplitudes[i] > amplitudes[i - 1]
-                                    && amplitudes[i] > amplitudes[i + 1]) {
-
-                                // check for close range peaks:
-                                if (peakCounter > 0) {
-                                    float lastFreq = possiblePeaks[peakCounter - 1][PEAK_FREQ];
-                                    double n = 12 * Math.log((lastFreq / 400)) + 49;
-                                    // find the next note in relation to the previous peak
-                                    double nextNote = Math.pow(2, (n - 48) / 12) * 440;
-//                                   frequency between them:
-                                    double diff = nextNote - lastFreq;
-
-//                                    if the actual difference is less than diff, find the bigger one:
-                                    if (Math.abs(i * fourierCoef - lastFreq) < diff * 0.7) {
-                                        if (amplitudes[i] > possiblePeaks[peakCounter - 1][PEAK_AMP]) {
-                                            peakCounter--;
-                                        } else {
-                                            minorPeak = true;
-                                        }
-                                    }
-
-                                }
-
-                                if (!minorPeak) {
+                        //Log.d("buffer", "path: " + log.getAbsolutePath());
+                        try {
+                            BufferedWriter out = new BufferedWriter(new FileWriter(log2.getAbsolutePath(), true));
+                            out.write("****************  "+bufferCounter+": \n");
 
 
-                                    possiblePeaks[peakCounter][PEAK_LOC] = i;
-                                    possiblePeaks[peakCounter][PEAK_FREQ] = (float) (i * fourierCoef);
-                                    possiblePeaks[peakCounter][PEAK_AMP] = amplitudes[i];
-                                    peakCounter++;
-                                }
-                            }
+                            for (int note : tempSymbols) {
+                                currNotes+=note+", ";
+                                int index = (int) Math.round(PitchConverter.midiKeyToHertz(note) / fourierCoef);
+                                out.write("looking for " + note + "in index " + index + " \n");
+                                for (int j = 1; j < NUM_HARMONY; j++) {
 
-                            if (peakCounter >= 60) {
-                                break;
-                            }
-                        }
-//                    find the peak average:
-                        float peakAverage = 0;
-                        int numOfPeaks = 0;
-                        for (int i = 0; i < peakCounter; i++) {
-                            if (possiblePeaks[i][PEAK_AMP] > 0) {
-                                peakAverage += possiblePeaks[i][PEAK_AMP] * possiblePeaks[i][PEAK_AMP];
-                                numOfPeaks++;
-                            }
-                        }
-                        peakAverage /= numOfPeaks;
+                                    float average = 0;
+                                    out.write("amplitudes[+" + index * j + ", +1 , -1] = " + amplitudes[index * j] + "," + amplitudes[index * j + 1] + "," + amplitudes[index * j - 1] + " \n");
 
+                                    if (amplitudes[index * j] > 0.02 || amplitudes[index * j + 1] > 0.02 || amplitudes[index * j - 1] > 0.02) {
+                                    } else {
+                                        out.write("note big enough! \n");
 
-
-                        float[] tempSolution = amplitudes;
-                        foundPeaks = new float[peakCounter][7];
-                        int foundCounter = 0;
-                        boolean foundSecond;
-                        for (int i = 0; i < peakCounter; i++) {
-
-                            foundSecond = false;
-                            // look for peak with amp thresh:
-                            if (possiblePeaks[i][PEAK_FREQ] < 2500 && possiblePeaks[i][PEAK_AMP] > peakAverage /3) {
-
-                                // look for second harmony
-                                for (int j = i + 1; j < peakCounter; j++) {
-                                    if (!foundSecond) {
-                                        if ((PitchConverter.hertzToMidiKey((double) possiblePeaks[i][PEAK_FREQ]) == PitchConverter.hertzToMidiKey((double) (possiblePeaks[j][PEAK_FREQ] / 2))
-                                                && possiblePeaks[j][PEAK_AMP] > peakAverage *0.75)
-                                                ||
-                                                (PitchConverter.hertzToMidiKey((double) possiblePeaks[i][PEAK_FREQ]) == PitchConverter.hertzToMidiKey((double) (possiblePeaks[j][PEAK_FREQ] / 3))
-                                                        && possiblePeaks[j][PEAK_AMP] > peakAverage /3)
-                                                ) {
-
-
-
-                                            //get surrounding average:
-                                            float average = getAverage((int) possiblePeaks[i][PEAK_LOC], tempSolution, fourierCoef);
-
-//                                    get ratio:
-                                            float ratio = possiblePeaks[i][PEAK_AMP] / average;
-
-
-                                            if (ratio >= 2) {
-//                                        add to found peaks:
-
-                                                foundPeaks[foundCounter][PEAK_LOC] = possiblePeaks[i][PEAK_LOC];
-                                                foundPeaks[foundCounter][PEAK_AMP] = possiblePeaks[i][PEAK_AMP];
-                                                foundPeaks[foundCounter][PEAK_FREQ] = possiblePeaks[i][PEAK_FREQ];
-                                                foundPeaks[foundCounter][PEAK_NOTE] = PitchConverter.hertzToMidiKey((double) possiblePeaks[i][PEAK_FREQ]);
-                                                foundPeaks[foundCounter][PEAK_FUNDAMENTAL] = 0;
-
-
-                                                foundCounter++;
-
-//                                      erase the 2nd harmony from the solution:
-                                                tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 - 2)] = 0;
-                                                tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 - 1)] = 0;
-                                                tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2)] = 0;
-                                                tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 + 1)] = 0;
-                                                tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 + 2)] = 0;
-                                                foundSecond = true;
-                                            }
-
-                                        }
-                                    }
-                                    else
-                                    {
+                                        foundAll = false;
                                         break;
                                     }
 
 
                                 }
-                            }
 
-
-                        }
-
-                        // look for third harmonic
-                        for (int i = 0; i < foundCounter; i++) {
-
-                            for (int j = i + 1; j < foundCounter; j++) {
-                                if (foundPeaks[i][PEAK_NOTE] % 12 == foundPeaks[j][PEAK_NOTE] % 12) {
-                                    foundPeaks[i][PEAK_FUNDAMENTAL]++;
+                                if (!foundAll) {
+                                    break;
                                 }
                             }
+                            if (foundAll) {
+                                out.write("found all! \n");
+
+//
+//
+                            } else {
+                                out.write("===== missing ===== \n");
+
+                            }
+
+
+                            out.close();
+                        } catch (Exception e) {
+                            Log.e("buffer", "Error opening Log.", e);
                         }
 
+                        System.arraycopy(amplitudes, 0, amplitudesErased, 0, amplitudes.length);
+
+                        if (foundAll) {
+//                            erase all found notes and harmonies
+                            for (int note : tempSymbols) {
+                                int index = (int) Math.round(PitchConverter.midiKeyToHertz(note) / fourierCoef);
+                                for (int j = 1; j <= NUM_HARMONY+1; j++) {
+                                    amplitudesErased[index * j - 4] = 0;
+                                    amplitudesErased[index * j - 3] = 0;
+                                    amplitudesErased[index * j - 2] = 0;
+                                    amplitudesErased[index * j - 1] = 0;
+                                    amplitudesErased[index * j] = 0;
+                                    amplitudesErased[index * j + 1] = 0;
+                                    amplitudesErased[index * j + 2] = 0;
+                                    amplitudesErased[index * j + 3] = 0;
+                                    amplitudesErased[index * j + 4] = 0;
+
+                                }
+                            }
+////
+//////
+////
+//////                                    //look for extra notes:
+//                            for (int noteIndex : allNotes) {
+//                                if(noteIndex>=copyAmps.length/2)
+//                                {
+//                                    break;
+//                                }
+//                                if (noteIndex==0)
+//                                {
+//                                    noteIndex=1;
+//                                }
+//                                if (copyAmps[noteIndex] > 0.02 || copyAmps[noteIndex + 1] > 0.02 || copyAmps[noteIndex - 1] > 0.02) {
+//                                    if (copyAmps[noteIndex * 2] > 0.02 || copyAmps[noteIndex * 2 + 1] > 0.02 || copyAmps[noteIndex * 2 - 1] > 0.02) {
+//                                        extraNotes[noteIndex] = copyAmps[noteIndex] + copyAmps[noteIndex * 2];
+//                                        extraNotes[noteIndex] = copyAmps[noteIndex + 1] + copyAmps[noteIndex * 2 + 1];
+//                                        extraNotes[noteIndex] = copyAmps[noteIndex - 1] + copyAmps[noteIndex * 2 - 1];
+//                                    }
+//
+//                                }
+//
+////                            }
+////
+//                            File logger = new File(Environment.getExternalStorageDirectory(), "extra.txt");
+//                            //Log.d("buffer", "path: " + log.getAbsolutePath());
+//                            try {
+//                                BufferedWriter outter = new BufferedWriter(new FileWriter(logger.getAbsolutePath(), true));
+//
+//                                outter.write("#########extra notes:#########");
+//                                for (int i = 1; i < extraNotes.length / 2; ++i) {
+//                                    if (extraNotes[i] > 0.01) {
+//                                        outter.write("freq: " + i * fourierCoef + " , amp: " + extraNotes[i] + "\n");
+//
+//                                    }
+//
+//                                }
+//                                outter.close();
+//                            } catch (Exception e) {
+//                                Log.e("buffer", "Error opening Log.", e);
+//                            }
+
+                        }
+
+                        extraMidi = 0;
+                        newExtraAlgo = false;
+
+                        File log6 = new File(Environment.getExternalStorageDirectory(), "extraFinder.txt");
+                        //Log.d("buffer", "path: " + log.getAbsolutePath());
+                        try {
+                            BufferedWriter out = new BufferedWriter(new FileWriter(log6.getAbsolutePath(), true));
+                            out.write("**************"+bufferCounter+"********************: \n");
+                            for (int i = 1; i < amplitudesErased.length / 2; ++i) {
+
+
+                                if(amplitudesErased[i]>0.5)
+                                {
+                                    out.write("found at: "+i+" , freq: "+i*fourierCoef+" \n");
+
+                                    newExtraAlgo = true;
+                                    extraMidi = PitchConverter.hertzToMidiKey(i*fourierCoef);
+                                    break;
+                                }
+
+
+//                                // if exists amp over 0.5
+//                                if(amplitudesErased[i]>0.5)
+//                                {
+//
+//                                    out.write("found index " + i+" amp: "+amplitudesErased[i]+": \n");
+//
+//
+//                                    // check it's second harmony
+//                                    for ( int index = -3 ; index<4 ; index++)
+//                                    {
+//                                        // if second harmony exists
+//                                        if(amplitudes[i*2+index]>0.15)
+//                                        {
+//                                            out.write("found second harmony " + (i*2+index)+" amp: "+amplitudes[i*2+index]+": \n");
+//
+//
+//                                            //check third harmony
+//                                            for ( int index2 = -3 ; index2<4 ; index2++)
+//                                            {
+//                                                if(amplitudes[i*3+index2]>0.1)
+//                                                {
+//                                                    out.write("found third harmony " + (i*3+index2)+" amp: "+amplitudes[i*3+index2]+": \n");
+//
+//                                                    newExtraAlgo = true;
+//                                                    extraMidi = PitchConverter.hertzToMidiKey(i*fourierCoef);
+//                                                    break;
+//                                                }
+//                                            }
+//                                        }
+//                                        if(newExtraAlgo) break;
+//                                    }
+//                                }
+//                                if(newExtraAlgo) break;
+                            }
+
+                            out.close();
+                        } catch (Exception e) {
+                            Log.e("buffer", "Error opening Log.", e);
+                        }
+
+
+
+
+                            File logg = new File(Environment.getExternalStorageDirectory(), "bufferAfter.txt");
+                        //Log.d("buffer", "path: " + log.getAbsolutePath());
+                        try {
+                            BufferedWriter out = new BufferedWriter(new FileWriter(logg.getAbsolutePath(), true));
+                            out.write("buffer: \n");
+
+                            for (int i = 1; i < amplitudesErased.length / 2; ++i) {
+                                out.write(amplitudesErased[i] + "\n");
+
+                            }
+                            out.close();
+                        } catch (Exception e) {
+                            Log.e("buffer", "Error opening Log.", e);
+                        }
+//
+//
+//                        /**
+//                         * perform search twice, once with regular buffer, and once with changed buffer.
+//                         * compare found peaks:
+//                         */
+//                        for (int k = 0 ; k<2 ; k++)
+//                        {
+//
+//                            if(k==1)
+//                            {
+//                                amplitudes=amplitudesErased;
+//                            }
+//                /*
+//                        Look for extra notes played:
+//                         */
+//
+//                            /**
+//                             * this will hold the possible peaks:
+//                             * 0 = location;
+//                             * 1 = frequency
+//                             * 2 = amplitude
+//                             */
+//                            possiblePeaks = new float[MAX_PEAKS][3];
+//                            int peakCounter = 0;
+//                            foundExtra = false;
+//                            boolean full = false;
+//                            boolean minorPeak;
+//                            for (int i = 1; i < amplitudes.length / 2; i++) {
+//                                minorPeak = false; //   restart bool:
+//
+//                                // find peaks:
+//                                if (amplitudes[i] > thresh
+//                                        && amplitudes[i] > amplitudes[i - 1]
+//                                        && amplitudes[i] > amplitudes[i + 1]) {
+//
+//                                    // check for close range peaks:
+//                                    if (peakCounter > 0) {
+//                                        float lastFreq = possiblePeaks[peakCounter - 1][PEAK_FREQ];
+//                                        double n = 12 * Math.log((lastFreq / 400)) + 49;
+//                                        // find the next note in relation to the previous peak
+//                                        double nextNote = Math.pow(2, (n - 48) / 12) * 440;
+////                                   frequency between them:
+//                                        double diff = nextNote - lastFreq;
+//
+////                                    if the actual difference is less than diff, find the bigger one:
+//                                        if (Math.abs(i * fourierCoef - lastFreq) < diff * 0.7) {
+//                                            if (amplitudes[i] > possiblePeaks[peakCounter - 1][PEAK_AMP]) {
+//                                                peakCounter--;
+//                                            } else {
+//                                                minorPeak = true;
+//                                            }
+//                                        }
+//
+//                                    }
+//
+//                                    if (!minorPeak) {
+//
+//                                        possiblePeaks[peakCounter][PEAK_LOC] = i;
+//                                        possiblePeaks[peakCounter][PEAK_FREQ] = (float) (i * fourierCoef);
+//                                        possiblePeaks[peakCounter][PEAK_AMP] = amplitudes[i];
+//                                        peakCounter++;
+//                                    }
+//                                }
+//
+//                                if (peakCounter >= 60) {
+//                                    break;
+//                                }
+//                            }
+////                    find the peak average:
+//                            float peakAverage = 0;
+//                            int numOfPeaks = 0;
+//                            for (int i = 0; i < peakCounter; i++) {
+//                                if (possiblePeaks[i][PEAK_AMP] > 0) {
+//                                    peakAverage += possiblePeaks[i][PEAK_AMP] * possiblePeaks[i][PEAK_AMP];
+//                                    numOfPeaks++;
+//                                }
+//                            }
+//                            peakAverage /= numOfPeaks;
+//
+//                            float[] tempSolution = new float[amplitudes.length];
+//                            System.arraycopy(amplitudes, 0, tempSolution, 0, amplitudes.length);
+//                            foundPeaks = new float[peakCounter][7];
+//                            boolean foundSecond;
+//                            foundCounter= 0;
+//                            for (int i = 0; i < peakCounter; i++) {
+//
+//                                foundSecond = false;
+//                                // look for peak with amp thresh:
+//                                if (possiblePeaks[i][PEAK_FREQ] < 2500 && amplitudes[(int) possiblePeaks[i][PEAK_LOC]]>0 && possiblePeaks[i][PEAK_AMP] > peakAverage / 3) {
+//
+//                                    // look for second harmony
+//                                    for (int j = i + 1; j < peakCounter; j++) {
+//                                        if (!foundSecond) {
+//                                            if (Math.abs(possiblePeaks[i][PEAK_FREQ]-possiblePeaks[j][PEAK_FREQ]/2)<8
+//                                                    &&amplitudes[(int)possiblePeaks[j][PEAK_LOC]]>peakAverage*0.75)
+//                                            {
+//
+//
+//                                                //get surrounding average:
+//                                                float average = getAverage((int) possiblePeaks[i][PEAK_LOC], tempSolution, fourierCoef);
+//
+////                                    get ratio:
+//                                                float ratio = amplitudes[(int) possiblePeaks[i][PEAK_LOC]] / average;
+//
+//
+//                                                if (ratio >= 2.5) {
+////                                        add to found peaks:
+//
+//                                                    foundPeaks[foundCounter][PEAK_LOC] = possiblePeaks[i][PEAK_LOC];
+//                                                    foundPeaks[foundCounter][PEAK_AMP] = possiblePeaks[i][PEAK_AMP];
+//                                                    foundPeaks[foundCounter][PEAK_FREQ] = possiblePeaks[i][PEAK_FREQ];
+//                                                    foundPeaks[foundCounter][PEAK_NOTE] = PitchConverter.hertzToMidiKey((double) possiblePeaks[i][PEAK_FREQ]);
+//                                                    foundPeaks[foundCounter][PEAK_FUNDAMENTAL] = 0;
+//
+//
+//                                                    foundCounter++;
+//
+////                                      erase the 2nd harmony from the solution:
+//                                                    tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 - 2)] = 0;
+//                                                    tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 - 1)] = 0;
+//                                                    tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2)] = 0;
+//                                                    tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 + 1)] = 0;
+//                                                    tempSolution[(int) (possiblePeaks[i][PEAK_LOC] * 2 + 2)] = 0;
+//                                                    foundSecond = true;
+//                                                }
+//
+//                                            }
+//                                        } else {
+//                                            break;
+//                                        }
+//
+//
+//                                    }
+//                                }
+//
+//
+//                            }
+//
+//
+////                            File log3 = new File(Environment.getExternalStorageDirectory(), "foundExtraPeaks.txt");
+////                            //Log.d("buffer", "path: " + log.getAbsolutePath());
+////                            try {
+////                                BufferedWriter out3 = new BufferedWriter(new FileWriter(log3.getAbsolutePath(), true));
+////                                out3.write("****************  "+bufferCounter+": \n");
+////                                for (int i = 0; i < foundCounter; i++) {
+////                                    out3.write("[freq: " + foundPeaks[i][PEAK_FREQ] + "],[amp: " + foundPeaks[i][PEAK_AMP] + " ] \n");
+////                                }
+////                                out3.close();
+////                            } catch (Exception e) {
+////                                Log.e("buffer", "Error opening Log.", e);
+////                            }
+//                            // look for third harmonic
+//
+//                            if(k==0)
+//                            {
+//                                foundPeaks2 = new float[foundCounter][7];
+//
+//                                for (int i = 0; i < foundCounter; i++) {
+//
+//                                    foundPeaks2[i] = Arrays.copyOf(foundPeaks[i], foundPeaks[i].length);
+//                                }
+//                            }
+//                            else //compare:
+//                            {
+//                                foundPeaksFinal = new float[Math.min(foundPeaks2.length,foundCounter)][7];
+//                                foundCounterFinal = 0;
+//                                foundExtra = false;
+//
+//
+//
+//                                File log = new File(Environment.getExternalStorageDirectory(), "extraCompare.txt");
+//                                //Log.d("buffer", "path: " + log.getAbsolutePath());
+//                                try {
+//                                    BufferedWriter out = new BufferedWriter(new FileWriter(log.getAbsolutePath(), true));
+//                                    out.write("=============="+bufferCounter+"=============== \n");
+//                                    out.write("looking for "+currNotes+" \n");
+//
+//                                    for (int i = 0; i < foundCounter; i++) {
+//                                        out.write("looking for a match for: "+foundPeaks[i][PEAK_NOTE]+" \n");
+//                                        out.write("----------------------- \n");
+//
+//                                        for (int j = 0; j < foundPeaks2.length; j++) {
+//                                            out.write(foundPeaks[i][PEAK_NOTE]+"=?="+foundPeaks2[j][PEAK_NOTE]+" \n");
+//                                            if(foundPeaks[i][PEAK_NOTE]==foundPeaks2[j][PEAK_NOTE])
+//                                            {
+//                                                out.write("found! \n");
+//
+//                                                foundPeaksFinal[foundCounterFinal] = Arrays.copyOf(foundPeaks[i], foundPeaks[i].length);
+//
+//                                                foundCounterFinal++;
+//                                                foundExtra = true;
+//                                                break;
+//                                            }
+//
+//                                        }
+//                                        out.write("# # # # # # # # # # # # #  # # # # \n");
+//
+//                                    }
+//
+//                                    out.write("{{{{   FOUND: }}}}\n");
+//
+//                                    for (int j = 0; j < foundCounterFinal; j++) {
+//                                        out.write(foundPeaksFinal[j][PEAK_NOTE]+" \n");
+//                                    }
+//
+//                                        out.write("========================================= \n");
+//
+//                                    out.close();
+//                                } catch (Exception e) {
+//                                    Log.e("buffer", "Error opening Log.", e);
+//                                }
+//
+//                            }
+//                        }
+//
+
                     }
-                    if(!timeCounter.firstRun )
+                    else
                     {
-                        callback.setPeaks(foundPeaks, timeElapsed / p2s, silence);
+                        foundAll = false;
+                        foundExtra= false;
+                        foundCounter = 0;
+                        foundPeaks = null;
+                        extraMidi = 0;
+                        newExtraAlgo = false;
+                    }
+                    if(!foundAll)
+                    {
+                        foundPeaks = null;
+                    }
+                    if (!timeCounter.firstRun) {
+
+                        callback.setPeaks(new Buffer(foundPeaks , foundAll, newExtraAlgo, (int) extraMidi ), timeElapsed / p2s, silence);
                         callback.run();
                     }
 
@@ -1725,6 +2056,7 @@ public class MidiPlayer extends LinearLayout {
 //                });
 //                //Log.d("silence", "is playing: " + !silence);
 
+                    bufferCounter++;
 
                     return true;
                 }
@@ -1739,7 +2071,7 @@ public class MidiPlayer extends LinearLayout {
 
     private float getAverage(int location, float[] tempSoltuion, double fourierCoef) {
 
-        double n = 12 * (Math.log((location * fourierCoef / 440))/Math.log(2)) + 49;
+        double n = 12 * (Math.log((location * fourierCoef / 440)) / Math.log(2)) + 49;
 
         // find the next note in relation to the previous peak
         double nextNote = (Math.pow(2, (n - 46) / 12)) * 440;
@@ -1754,7 +2086,7 @@ public class MidiPlayer extends LinearLayout {
 
 
 //            average left of peak
-            for (int i = prevI; i <= location ; i++) {
+            for (int i = prevI; i <= location; i++) {
                 if (tempSoltuion[i] > 0.005) {
                     tempAv += tempSoltuion[i];
                     tempCount++;
@@ -1774,4 +2106,3 @@ public class MidiPlayer extends LinearLayout {
     }
 
 }
-

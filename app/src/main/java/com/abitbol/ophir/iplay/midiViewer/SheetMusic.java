@@ -87,7 +87,7 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
      * Height of title on first page
      */
 
-    private ArrayList<Staff> staffs;
+    ArrayList<Staff> staffs;
     /**
      * The array of staffs to display (from top to bottom)
      */
@@ -1369,7 +1369,7 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
      * to the shaded notes.
      */
     public void ShadeNotes(int currentPulseTime, int prevPulseTime,
-                           boolean scrollGradually, float[][] peaks ) {
+                           boolean scrollGradually, Buffer buffer ) {
 //        Log.d("shading" , "curr: " + currentPulseTime + " prev: " + prevPulseTime);
         if (!surfaceReady || staffs == null) {
             return;
@@ -1404,7 +1404,7 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
 //            Log.d("shading" , "correct shading");
 
             x_shade = staff.ShadeNotes(bufferCanvas, paint, shade1,
-                    currentPulseTime, prevPulseTime, x_shade, peaks , staffCount , staffs);
+                    currentPulseTime, prevPulseTime, x_shade, buffer , staffCount , staffs);
             staffCount++;
             bufferCanvas.translate(0, -ypos);
             ypos += staff.getHeight();
@@ -1658,4 +1658,3 @@ public class SheetMusic extends SurfaceView implements SurfaceHolder.Callback {
     }
 
 }
-

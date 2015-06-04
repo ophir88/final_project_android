@@ -174,17 +174,17 @@ public class TimeSignature implements Serializable {
          **/
 
         if (duration >= 28 * whole / 32)
-            return 3;
+            return 5;
         else if (duration >= 20 * whole / 32)
-            return 3;
+            return 4;
         else if (duration >= 14 * whole / 32)
-            return 2;
+            return 3;
         else if (duration >= 10 * whole / 32)
-            return 2;
+            return 3;
         else if (duration >= 7 * whole / 32)
-            return 1;
+            return 2;
         else if (duration >= 5 * whole / 32)
-            return 1;
+            return 2;
         else if (duration >= 6 * whole / 64)
             return 1;
         else if (duration >= 5 * whole / 64)
